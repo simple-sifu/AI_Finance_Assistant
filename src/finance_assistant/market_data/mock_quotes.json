@@ -1,0 +1,106 @@
+{
+  "_comment": "Fixed demo quotes used when live data is unavailable. Not real-time prices.",
+  "latest_trading_day": "2026-09-29",
+  "quotes": {
+    "SPY": {
+      "price": 764.2,
+      "open": 765.14,
+      "high": 769.06,
+      "low": 760.99,
+      "previous_close": 765.61,
+      "change": -1.41,
+      "change_percent": -0.1842,
+      "volume": 61234567
+    },
+    "VOO": {
+      "price": 702.55,
+      "open": 703.39,
+      "high": 706.98,
+      "low": 699.6,
+      "previous_close": 703.81,
+      "change": -1.26,
+      "change_percent": -0.179,
+      "volume": 5432100
+    },
+    "VTI": {
+      "price": 374.8,
+      "open": 375.33,
+      "high": 377.28,
+      "low": 373.23,
+      "previous_close": 375.59,
+      "change": -0.79,
+      "change_percent": -0.2103,
+      "volume": 3876500
+    },
+    "QQQ": {
+      "price": 694.3,
+      "open": 695.75,
+      "high": 699.6,
+      "low": 691.38,
+      "previous_close": 696.47,
+      "change": -2.17,
+      "change_percent": -0.3116,
+      "volume": 42110300
+    },
+    "BND": {
+      "price": 74.62,
+      "open": 74.59,
+      "high": 74.96,
+      "low": 74.27,
+      "previous_close": 74.58,
+      "change": 0.04,
+      "change_percent": 0.0536,
+      "volume": 6120400
+    },
+    "AAPL": {
+      "price": 265.4,
+      "open": 264.61,
+      "high": 266.59,
+      "low": 263.1,
+      "previous_close": 264.21,
+      "change": 1.19,
+      "change_percent": 0.4504,
+      "volume": 48730200
+    },
+    "MSFT": {
+      "price": 538.75,
+      "open": 540.64,
+      "high": 544.02,
+      "low": 536.49,
+      "previous_close": 541.58,
+      "change": -2.83,
+      "change_percent": -0.5225,
+      "volume": 19870500
+    },
+    "GOOGL": {
+      "price": 259.85,
+      "open": 258.46,
+      "high": 261.02,
+      "low": 256.68,
+      "previous_close": 257.76,
+      "change": 2.09,
+      "change_percent": 0.8108,
+      "volume": 27340100
+    },
+    "AMZN": {
+      "price": 241.3,
+      "open": 242.38,
+      "high": 244.01,
+      "low": 240.29,
+      "previous_close": 242.92,
+      "change": -1.62,
+      "change_percent": -0.6669,
+      "volume": 38920700
+    },
+    "NVDA": {
+      "price": 194.6,
+      "open": 193.0,
+      "high": 195.48,
+      "low": 191.39,
+      "previous_close": 192.2,
+      "change": 2.4,
+      "change_percent": 1.2487,
+      "volume": 187650300
+    }
+  }
+}
