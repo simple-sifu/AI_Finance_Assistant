@@ -1,0 +1,71 @@
+- id: "1"
+  title: Project skeleton and Alpha Vantage client with cache and mock fallback
+  description: >-
+    Scaffold the async Python project and an Alpha Vantage client with a
+    30-minute TTL cache that falls back to mock data on quota exhaustion or
+    API error (CAP-9; see stack.md).
+- id: "2"
+  title: LangGraph router with six stub agents and shared advice guardrail
+  description: >-
+    Build the router that classifies each query and dispatches to one of six
+    stub agents (CAP-1), with the education-not-advice rule and disclaimer
+    shared by every agent (CAP-8).
+  spec_checkpoint: true
+  done_checkpoint: true
+- id: "3"
+  title: Knowledge base, FAISS index and Finance Q&A agent
+  description: >-
+    Assemble the 50–100 article knowledge base, build the FAISS index at image
+    build time, and implement the Finance Q&A agent with article citations
+    (CAP-2). The article-sourcing open question must be answered first.
+  spec_checkpoint: true
+- id: "4"
+  title: Tax Education agent
+  description: >-
+    Implement the Tax Education agent on the story 3 retrieval, explaining
+    401(k)/IRA/Roth as concepts and redirecting situation-specific tax
+    questions (CAP-7).
+- id: "5"
+  title: Market Analysis agent
+  description: >-
+    Implement the Market Analysis agent that returns quotes through the story 1
+    client and explains the figures in plain language (CAP-4).
+- id: "6"
+  title: Goal Planning agent
+  description: >-
+    Implement the Goal Planning agent that computes the monthly saving needed
+    for a target, horizon and rate, and shows the compound-interest math
+    (CAP-5).
+  invoke_dev_with: >-
+    Compute the savings math deterministically in Python as a tool; the LLM
+    only explains the computed result and never does the arithmetic itself.
+- id: "7"
+  title: Portfolio Analysis agent and holdings upload
+  description: >-
+    Parse an uploaded holdings file and implement the agent that explains
+    diversification and concentration risk (CAP-3). Depends on the upload
+    format open question.
+- id: "8"
+  title: News Synthesizer agent
+  description: >-
+    Implement the News Synthesizer agent on Tavily or SerpAPI, summarizing
+    current financial news with source URLs cited (CAP-6).
+- id: "9"
+  title: Streamlit UI with five tabs
+  description: >-
+    Build the Chat, Portfolio, Markets, Goals and Knowledge tabs so all six
+    agents are demoable end to end (CAP-10).
+  done_checkpoint: true
+- id: "10"
+  title: Routing and advice-guardrail evaluation set
+  description: >-
+    Add at least 5 representative questions per agent plus advice-seeking
+    prompts, and verify correct routing and educational redirects (CAP-1,
+    CAP-8).
+- id: "11"
+  title: Docker image and AWS deployment
+  description: >-
+    Package the app as one Docker image with CPU-only torch, deploy it to
+    Lightsail or EC2 with at least 2 GB RAM, and run the full demo with the
+    Alpha Vantage quota exhausted (CAP-11, success signal).
+  done_checkpoint: true
