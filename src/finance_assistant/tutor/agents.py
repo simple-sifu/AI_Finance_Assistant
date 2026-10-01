@@ -103,6 +103,11 @@ def clarify(request: AgentRequest) -> AgentResult:
 
 UNAVAILABLE_TEXT = "Sorry, the tutor is temporarily unavailable. Please try again in a moment."
 AGENT_FAILURE_TEXT = "Sorry, I couldn't finish answering that just now. Please try again in a moment."
+# Follows ADVICE_REDIRECT when the guardrail's reviewer withholds a reply that gave advice.
+ADVICE_REVIEW_NOTE = (
+    'If you like, ask me how something works instead, such as "How does an index fund work?" '
+    "and I'll explain the concepts so you can decide for yourself."
+)
 
 
 def unavailable(request: AgentRequest) -> AgentResult:

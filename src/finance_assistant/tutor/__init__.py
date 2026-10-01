@@ -30,12 +30,13 @@ from .models import (
     Source,
     TutorReply,
 )
-from .router import Classifier, OpenAIClassifier
+from .router import AdviceReviewer, Classifier, OpenAIAdviceReviewer, OpenAIClassifier
 
 __all__ = [
     "ADVICE_REDIRECT",
     "AGENT_FAILURE_TEXT",
     "AGENT_ROUTES",
+    "AdviceReviewer",
     "DISCLAIMER",
     "EDUCATION_SYSTEM_PROMPT",
     "ROUTES",
@@ -45,6 +46,7 @@ __all__ = [
     "ChatTurn",
     "Classification",
     "Classifier",
+    "OpenAIAdviceReviewer",
     "OpenAIClassifier",
     "Route",
     "Source",

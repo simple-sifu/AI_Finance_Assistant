@@ -16,3 +16,7 @@
   summary: Any classifier failure (OpenAI outage, 401 bad key, 429 rate limit, timeout) routes to `clarify`, so the user sees "I'm not sure what you're asking… rephrase" for a valid question.
   evidence: Verified, medium. Behavior is mandated by story 2's frozen I/O matrix, so changing it needs a human decision. Likely fix: distinguish provider/config errors and reply "the tutor is temporarily unavailable" instead.
   resolution: CLOSED 2026-10-01 in story 2 (human renegotiated the frozen matrix). Classifier exceptions route to `unavailable` ("Sorry, the tutor is temporarily unavailable. Please try again in a moment."); 401/403 also logs an ERROR naming OPENAI_API_KEY; unparseable output still routes to `clarify`. Covered by the provider-error tests.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-advice-guardrail-hardening.md`
+  summary: The advice reviewer sees only the latest question and the reply, not conversation history, so context-dependent follow-up advice ("Yes, go with the first one") may pass review.
+  evidence: Unverified (medium if true; review findings #5 and #26). Settle it with live review-eval cases for follow-up replies; if they get through, pass recent history to `AdviceReviewer.gives_advice`.

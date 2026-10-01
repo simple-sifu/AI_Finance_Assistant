@@ -65,6 +65,13 @@ class FakeClassifier:
         return Classification(route="clarify", seeks_advice=seeks_advice)
 
 
+class AllowAllReviewer:
+    """Reviewer that never flags advice."""
+
+    async def gives_advice(self, question: str, reply: str) -> bool:
+        return False
+
+
 class FuncClassifier:
     def __init__(self, fn: Callable[[str, Sequence[ChatTurn]], object]) -> None:
         self.fn = fn
@@ -313,7 +320,9 @@ async def test_registered_agent_replaces_stub_without_graph_edits() -> None:
     assert get_agent("market") is agent
 
     history = [ChatTurn("user", "hello")]
-    reply = await ask("What is the price of SPY?", history, classifier=FakeClassifier())
+    reply = await ask(
+        "What is the price of SPY?", history, classifier=FakeClassifier(), reviewer=AllowAllReviewer()
+    )
     assert reply.route == "market"
     assert reply.text == apply_guardrail("SPY closed at 764.20.")
     assert reply.sources == [Source("Alpha Vantage", "https://www.alphavantage.co")]
