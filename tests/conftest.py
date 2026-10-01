@@ -8,8 +8,15 @@ import pytest
 
 from finance_assistant import config
 from finance_assistant.market_data import reset_client
+from finance_assistant.tutor import reset_agents
 
-_ENV_VARS = ("ALPHA_VANTAGE_API_KEY", "MARKET_DATA_MODE", "QUOTE_CACHE_TTL_SECONDS")
+_ENV_VARS = (
+    "ALPHA_VANTAGE_API_KEY",
+    "MARKET_DATA_MODE",
+    "QUOTE_CACHE_TTL_SECONDS",
+    "OPENAI_API_KEY",
+    "OPENAI_MODEL",
+)
 
 
 @pytest.fixture(autouse=True)
@@ -20,9 +27,11 @@ def _isolated_config(monkeypatch: pytest.MonkeyPatch):
         monkeypatch.delenv(name, raising=False)
     config.reset_settings()
     reset_client()
+    reset_agents()
     yield
     config.reset_settings()
     reset_client()
+    reset_agents()
 
 
 @pytest.fixture(autouse=True)

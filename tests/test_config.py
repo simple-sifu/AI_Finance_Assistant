@@ -6,12 +6,19 @@ from pathlib import Path
 
 import pytest
 
-from finance_assistant.config import Settings, load_settings
+from finance_assistant.config import (
+    DEFAULT_OPENAI_MODEL,
+    ConfigurationError,
+    Settings,
+    load_settings,
+)
 
 
 def test_defaults_without_env_or_file() -> None:
     settings = load_settings(environ={})
     assert settings == Settings(None, "live", 1800.0)
+    assert settings.openai_api_key is None
+    assert settings.openai_model == DEFAULT_OPENAI_MODEL == "gpt-4o-mini"
 
 
 def test_env_file_values_and_env_override(tmp_path: Path) -> None:
@@ -47,3 +54,33 @@ def test_repr_hides_key() -> None:
     settings = Settings(alpha_vantage_api_key="SECRET123")
     assert "SECRET123" not in repr(settings)
     assert "SECRET123" not in str(settings)
+
+
+def test_repr_hides_openai_key() -> None:
+    settings = Settings(openai_api_key="sk-SECRET456")
+    assert "sk-SECRET456" not in repr(settings)
+    assert "<set>" in repr(settings)
+
+
+def test_openai_settings_from_env_file_and_env(tmp_path: Path) -> None:
+    env_file = tmp_path / ".env"
+    env_file.write_text("OPENAI_API_KEY=sk-file\nOPENAI_MODEL=file-model\n")
+    from_file = load_settings(environ={}, env_file=env_file)
+    assert from_file.openai_api_key == "sk-file"
+    assert from_file.openai_model == "file-model"
+
+    overridden = load_settings(
+        environ={"OPENAI_MODEL": " env-model ", "OPENAI_API_KEY": "  "}, env_file=env_file
+    )
+    assert overridden.openai_model == "env-model"
+    assert overridden.openai_api_key is None  # blank env value means "no key"
+
+
+def test_blank_openai_model_falls_back_to_default() -> None:
+    assert load_settings(environ={"OPENAI_MODEL": "  "}).openai_model == DEFAULT_OPENAI_MODEL
+
+
+def test_require_openai_api_key() -> None:
+    assert Settings(openai_api_key="sk-x").require_openai_api_key() == "sk-x"
+    with pytest.raises(ConfigurationError, match="OPENAI_API_KEY"):
+        Settings().require_openai_api_key()
