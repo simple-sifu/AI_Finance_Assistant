@@ -2,7 +2,7 @@
 title: 'LangGraph router with six stub agents and shared advice guardrail'
 type: 'feature'
 created: '2026-10-01'
-status: 'in-review'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 0
 baseline_commit: '8b738900f3b35fa60c0e9c028f8a5c2386c58f6f'
