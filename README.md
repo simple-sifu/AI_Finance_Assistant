@@ -8,7 +8,7 @@ Requires [uv](https://docs.astral.sh/uv/) and Python 3.12.
 
 ```bash
 uv sync --python 3.12 --extra dev   # creates .venv; installs the app + dev extra (pytest, pytest-asyncio, respx)
-cp .env.example .env                # then add your ALPHA_VANTAGE_API_KEY
+cp .env.example .env                # then add your OPENAI_API_KEY and ALPHA_VANTAGE_API_KEY
 ```
 
 `.env` is git-ignored. Never commit a real key.
@@ -18,6 +18,8 @@ cp .env.example .env                # then add your ALPHA_VANTAGE_API_KEY
 | `ALPHA_VANTAGE_API_KEY` | unset | Alpha Vantage key. If unset, the app serves mock quotes only. |
 | `MARKET_DATA_MODE` | `live` | `live` or `mock`. `mock` never calls the network. |
 | `QUOTE_CACHE_TTL_SECONDS` | `1800` | How long a live quote stays fresh in the in-process cache. |
+| `OPENAI_API_KEY` | unset | OpenAI key for the router and agents. Required to ask questions; `ask` raises `ConfigurationError` naming it if unset. |
+| `OPENAI_MODEL` | `gpt-4o-mini` | OpenAI model used by the router and agents. Must be a model your OpenAI project can access. |
 
 Real environment variables take precedence over `.env`.
 
@@ -27,7 +29,7 @@ Real environment variables take precedence over `.env`.
 uv run --extra dev pytest -q
 ```
 
-Tests run offline. They ignore your `.env`, mock Alpha Vantage with respx, and fail if anything opens a real network connection.
+Tests run offline. They ignore your `.env`, mock Alpha Vantage and OpenAI with respx (or inject a fake router classifier), and fail if anything opens a real network connection.
 
 ## Market data and mock mode
 
@@ -59,6 +61,25 @@ MARKET_DATA_MODE=mock uv run python -c "import asyncio; from finance_assistant.m
 ```
 
 The call budget lives in process memory, so a restart resets it, but Alpha Vantage's server-side quota doesn't reset. Detecting rate-limit replies is the backstop.
+
+## Tutor: router, agents, and guardrail
+
+```python
+import asyncio
+from finance_assistant.tutor import ChatTurn, ask
+
+reply = asyncio.run(ask("What about Roth?", [ChatTurn("user", "How does an IRA work?")]))
+print(reply.route, reply.seeks_advice)   # e.g. tax_education False
+print(reply.text)                        # answer + disclaimer footer
+```
+
+`ask` runs a LangGraph graph: **router → one agent → guardrail**.
+
+- **Router**: an OpenAI classifier (structured output) picks one route for the latest question, using up to the last 6 history turns for follow-ups, and flags advice-seeking. Routes: `finance_qa`, `portfolio`, `market`, `goal_planning`, `news`, `tax_education`, `clarify`. If the classifier returns invalid or unparseable output, the question routes to `clarify`. If it raises (OpenAI outage, timeout, 429, network, bad key), the question routes to `unavailable` and the reply is "Sorry, the tutor is temporarily unavailable. Please try again in a moment." A 401/403 logs an error naming `OPENAI_API_KEY`; logs carry only exception types, never the key.
+- **Agents**: six stub agents return placeholder answers for now. A real agent implements `async run(request: AgentRequest) -> AgentResult` and is plugged in with `register_agent(route, agent)`; the router and graph don't change. If an agent raises or returns something other than an `AgentResult`, the route is kept and the reply is "Sorry, I couldn't finish answering that just now. Please try again in a moment." with no sources.
+- **Guardrail**: every agent builds its system prompt with `build_system_prompt`, which carries the shared education-not-advice rule. Advice-seeking questions get an educational redirect. The guardrail node appends the disclaimer to every reply: *Educational information only, not financial, tax, or investment advice.*
+
+`ask` raises only for an empty question or malformed history (`ValueError`, before any LLM call) and a missing `OPENAI_API_KEY` (`ConfigurationError`). The graph and the OpenAI HTTP client are built per call, so repeated `asyncio.run(ask(...))` calls (as Streamlit makes them) are safe.
 
 ## Knowledge base
 

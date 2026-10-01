@@ -5,7 +5,7 @@
 | Concern | Choice |
 |---|---|
 | Orchestration | LangGraph router classifying each query and dispatching to one of six agents; LangChain |
-| LLM | OpenAI API, for all agents |
+| LLM | OpenAI API, for all agents. Default model `gpt-4o-mini` (`OPENAI_MODEL`); the course project can access only gpt-4o, gpt-4o-mini and gpt-5 for chat |
 | RAG | FAISS vector store over 50–100 curated articles; sentence-transformers `all-MiniLM-L6-v2` embeddings |
 | Market data | Alpha Vantage, free tier: 25 requests/day and 5/minute. Cached with a 30-minute TTL; mock fallback when the quota is exhausted or the API errors |
 | News | Tavily (free tier 1,000/month) or SerpAPI (free tier 100/month) |

@@ -17,9 +17,15 @@ from dotenv import dotenv_values
 
 MARKET_DATA_MODES = frozenset({"live", "mock"})
 DEFAULT_QUOTE_CACHE_TTL_SECONDS = 1800.0
+# Cheap model available to the course OpenAI project (gpt-6-luna is not; checked 2026-10-01). Override with OPENAI_MODEL.
+DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
 
 # Resolved relative to the working directory, like most .env tooling.
 DEFAULT_ENV_FILE: Path | None = Path(".env")
+
+
+class ConfigurationError(RuntimeError):
+    """A required setting is missing or unusable. The message names the variable."""
 
 
 @dataclass(frozen=True)
@@ -29,6 +35,8 @@ class Settings:
     alpha_vantage_api_key: str | None = None
     market_data_mode: str = "live"
     quote_cache_ttl_seconds: float = DEFAULT_QUOTE_CACHE_TTL_SECONDS
+    openai_api_key: str | None = None
+    openai_model: str = DEFAULT_OPENAI_MODEL
 
     def __post_init__(self) -> None:
         if self.market_data_mode not in MARKET_DATA_MODES:
@@ -38,13 +46,27 @@ class Settings:
             )
         if not math.isfinite(self.quote_cache_ttl_seconds) or self.quote_cache_ttl_seconds <= 0:
             raise ValueError("QUOTE_CACHE_TTL_SECONDS must be a positive finite number")
+        if not self.openai_model or not self.openai_model.strip():
+            raise ValueError("OPENAI_MODEL must not be empty")
 
-    def __repr__(self) -> str:  # never expose the key in logs or tracebacks
-        key = "<set>" if self.alpha_vantage_api_key else None
+    def require_openai_api_key(self) -> str:
+        """Return the OpenAI key, or raise ConfigurationError naming OPENAI_API_KEY."""
+        if not self.openai_api_key:
+            raise ConfigurationError(
+                "OPENAI_API_KEY is not set. Add it to your environment or .env "
+                "(see .env.example)."
+            )
+        return self.openai_api_key
+
+    def __repr__(self) -> str:  # never expose a key in logs or tracebacks
+        av_key = "<set>" if self.alpha_vantage_api_key else None
+        openai_key = "<set>" if self.openai_api_key else None
         return (
-            f"Settings(alpha_vantage_api_key={key!r}, "
+            f"Settings(alpha_vantage_api_key={av_key!r}, "
             f"market_data_mode={self.market_data_mode!r}, "
-            f"quote_cache_ttl_seconds={self.quote_cache_ttl_seconds!r})"
+            f"quote_cache_ttl_seconds={self.quote_cache_ttl_seconds!r}, "
+            f"openai_api_key={openai_key!r}, "
+            f"openai_model={self.openai_model!r})"
         )
 
 
@@ -69,7 +91,15 @@ def load_settings(
         ttl = float(ttl_raw) if ttl_raw else DEFAULT_QUOTE_CACHE_TTL_SECONDS
     except ValueError as exc:
         raise ValueError(f"QUOTE_CACHE_TTL_SECONDS must be a number, got {ttl_raw!r}") from exc
-    return Settings(alpha_vantage_api_key=key, market_data_mode=mode, quote_cache_ttl_seconds=ttl)
+    openai_key = (values.get("OPENAI_API_KEY") or "").strip() or None
+    openai_model = (values.get("OPENAI_MODEL") or "").strip() or DEFAULT_OPENAI_MODEL
+    return Settings(
+        alpha_vantage_api_key=key,
+        market_data_mode=mode,
+        quote_cache_ttl_seconds=ttl,
+        openai_api_key=openai_key,
+        openai_model=openai_model,
+    )
 
 
 _settings: Settings | None = None
