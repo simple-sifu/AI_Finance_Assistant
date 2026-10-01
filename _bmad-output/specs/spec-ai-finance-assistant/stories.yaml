@@ -45,6 +45,14 @@
     Parse an uploaded holdings file and implement the agent that explains
     diversification and concentration risk (CAP-3). Depends on the upload
     format open question.
+  invoke_dev_with: >-
+    Alpha Vantage also enforces a 1-request-per-second burst limit (verified
+    2026-10-01: a second call within 1 s returns an "Information" reply), which
+    CallBudget in market_data/budget.py does not model. Fetching several
+    holdings in a row would trigger it and pause all live calls for 60 s.
+    Extend CallBudget to space live calls at least 1 s apart, with tests, and
+    close the matching entry in
+    _bmad-output/implementation-artifacts/deferred-work.md.
 - id: "8"
   title: News Synthesizer agent
   description: >-
