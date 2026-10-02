@@ -76,6 +76,18 @@ def get_agent(route: Route) -> Agent:
             raise ValueError(f"no agent for route {route!r}") from None
 
 
+def install_real_agents() -> None:
+    """Register the real agents built so far in place of their stubs.
+
+    Opt-in: the app calls this at startup, while tests keep the offline stubs
+    unless they call it. Stories 4-8 add their agents here. Importing an agent is
+    cheap; its heavy resources (e.g. the embedding model) load on first use.
+    """
+    from .finance_qa import FinanceQAAgent
+
+    register_agent("finance_qa", FinanceQAAgent())
+
+
 def reset_agents() -> None:
     """Restore the six stubs (for tests)."""
     with _registry_lock:

@@ -20,3 +20,10 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-advice-guardrail-hardening.md`
   summary: The advice reviewer sees only the latest question and the reply, not conversation history, so context-dependent follow-up advice ("Yes, go with the first one") may pass review.
   evidence: Unverified (medium if true; review findings #5 and #26). Settle it with live review-eval cases for follow-up replies; if they get through, pass recent history to `AdviceReviewer.gives_advice`.
+
+- source_spec: `_bmad-output/specs/spec-ai-finance-assistant/stories/3-knowledge-base-faiss-index-and-finance-qa-agent.md`
+  summary: In the Docker image (story 11), the first Finance Q&A question may download the ~90 MB embedding model unless the Hugging Face cache from `build_index.py` is kept in the image (or `HF_HUB_OFFLINE` is set).
+  evidence: Unverified (medium if true; story 3 review #13). Settle it when writing the Dockerfile by running the image offline and asking one Finance Q&A question.
+- source_spec: `_bmad-output/specs/spec-ai-finance-assistant/stories/3-knowledge-base-faiss-index-and-finance-qa-agent.md`
+  summary: `knowledge/articles.py` finds `knowledge_base/` via `Path(__file__).parents[3]`, which breaks if the package is installed non-editable.
+  evidence: Unverified (medium if true; story 3 review #23). Settle it in story 11; if the image installs non-editable, add a configurable path and fail clearly when the directory is missing.

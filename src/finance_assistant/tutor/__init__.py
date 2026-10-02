@@ -8,6 +8,7 @@ from .agents import (
     Agent,
     StubAgent,
     get_agent,
+    install_real_agents,
     register_agent,
     reset_agents,
 )
@@ -58,6 +59,7 @@ __all__ = [
     "build_graph",
     "build_system_prompt",
     "get_agent",
+    "install_real_agents",
     "register_agent",
     "reset_agents",
 ]

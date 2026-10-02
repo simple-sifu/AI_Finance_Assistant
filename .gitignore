@@ -18,3 +18,6 @@ htmlcov/
 
 # OS
 .DS_Store
+
+# Built FAISS index (scripts/build_index.py; built at image build time)
+knowledge_base/index/
