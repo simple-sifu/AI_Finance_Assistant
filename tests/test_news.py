@@ -161,6 +161,54 @@ async def test_excerpt_whitespace_is_collapsed(client: NewsClient) -> None:
 
 
 @respx.mock
+async def test_section_topic_and_front_pages_are_skipped(client: NewsClient) -> None:
+    respx.post(TAVILY_SEARCH_URL).respond(
+        json=tavily_body(
+            result(title="Federal Reserve - Latest News", url="https://www.wsj.com/topics/subject/federal-reserve"),
+            result(title="Tesla quote", url="https://finance.yahoo.com/quote/TSLA/"),
+            result(title="Tagged: inflation", url="https://example.com/tag/inflation"),
+            result(title="Front page", url="https://www.cnbc.com/"),
+            result(title="Fed minutes show another hike is likely", url="https://apnews.com/article/fed-minutes-123"),
+        )
+    )
+
+    articles = await client.search("fed")
+
+    assert [a.url for a in articles] == ["https://apnews.com/article/fed-minutes-123"]
+
+
+@respx.mock
+async def test_same_story_under_two_urls_from_one_outlet_is_kept_once(client: NewsClient) -> None:
+    respx.post(TAVILY_SEARCH_URL).respond(
+        json=tavily_body(
+            result(
+                title="Man Works On Wrecked Tesla. Then Plugs It In: 'I Wouldn't Do That' - Motor1.com",
+                url="https://www.motor1.com/news/810373/tesla-charges-after-wreck/",
+            ),
+            result(
+                title="Man Gets Wrecked Tesla In The Shop, Then Plugs It In: ‘I Wouldn’t Do That’ - Motor1.com",
+                url="https://www.motor1.com/news/810373/man-charges-wrecked-tesla/",
+            ),
+            # Same outlet, different story: kept.
+            result(title="Tesla recalls Model Y over seat belts - Motor1.com", url="https://www.motor1.com/news/811000/recall/"),
+            # Same headline, different outlet: kept (each outlet is its own source).
+            result(
+                title="Man Works On Wrecked Tesla. Then Plugs It In: 'I Wouldn't Do That'",
+                url="https://www.autoblog.com/news/wrecked-tesla",
+            ),
+        )
+    )
+
+    articles = await client.search("tesla")
+
+    assert [a.url for a in articles] == [
+        "https://www.motor1.com/news/810373/tesla-charges-after-wreck/",
+        "https://www.motor1.com/news/811000/recall/",
+        "https://www.autoblog.com/news/wrecked-tesla",
+    ]
+
+
+@respx.mock
 async def test_long_excerpt_is_clipped(client: NewsClient) -> None:
     respx.post(TAVILY_SEARCH_URL).respond(json=tavily_body(result(content="word " * 1000)))
     (article,) = await client.search("rates")

@@ -84,6 +84,8 @@ Search parameters (constants): `topic="news"`, `time_range="week"`, `max_results
 
 - Post-review verification (2026-10-09): 561 offline tests pass; live news eval 6/6 on gpt-4o-mini with Tavily after the review patches.
 
+- Walkthrough follow-up (2026-10-09, from manual checks): section, topic, tag, quote and front pages are skipped (`SECTION_PATH_SEGMENTS`; a WSJ topic page was cited for a claim no single article backed); the same outlet's near-identical headlines (title-word Jaccard ≥ 0.6, outlet suffix and quotes ignored) are kept once (a Motor1 story was cited twice); the prompt forbids interpreting the news ("a positive sign"). 564 offline tests pass; live news eval 6/6.
+
 ## Spec Change Log
 
 ## Review Triage Log

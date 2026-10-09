@@ -40,3 +40,7 @@
 - source_spec: `_bmad-output/specs/spec-ai-finance-assistant/stories/8-news-synthesizer-agent.md`
   summary: Citing agents (Finance Q&A, Tax Education, News Synthesizer) enforce "every factual sentence is cited" only through the prompt; an uncited closing sentence can reach the user.
   evidence: `apply_citations` only requires at least one valid citation; story 8 live replies sometimes end with one uncited sentence. Fixing it needs a sentence-level check that tells factual sentences from connective ones, shared by all three agents.
+
+- source_spec: `_bmad-output/specs/spec-ai-finance-assistant/stories/8-news-synthesizer-agent.md`
+  summary: The router sends "Should I buy Tesla after this week's news?" to `market` instead of `news`; add it to the story 10 routing eval and adjust the router prompt if it keeps misrouting.
+  evidence: Manual walkthrough check on 2026-10-09 returned route `market` (quote figures, no news) for the spec's own news advice example; story 8 may not change the router.
