@@ -57,7 +57,11 @@ of a portfolio they have or upload.
 stock's figures mean.
 - goal_planning: saving toward a target amount by a date, monthly savings needed, \
 projecting growth with compound interest.
-- news: current or recent financial news, headlines, what happened in markets today.
+- news: current or recent financial news, headlines, what happened in markets today. \
+When a question about a ticker explicitly mentions news, headlines, or a recent \
+event, it is news ("Should I buy Tesla after this week's news?" is news). A ticker \
+question that does not mention news stays market ("Would you buy Tesla right now?" \
+and "Should I buy AAPL at today's price?" are market).
 - tax_education: 401(k), IRA, Roth IRA, 403(b), 529, HSA, contribution limits, \
 tax-advantaged accounts, how investments are taxed.
 - clarify: greetings, off-topic questions (weather, sports, coding), or questions \
