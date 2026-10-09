@@ -505,3 +505,8 @@ async def test_ask_llm_failure_gives_agent_failure_text(
     assert reply.sources == []
     assert "Agent news failed" in caplog.text
     assert "sk-test" not in caplog.text and TAVILY_KEY not in caplog.text
+
+
+def test_instructions_forbid_interpreting_the_news() -> None:
+    assert "Do not interpret or judge the news" in NEWS_SYNTHESIZER_INSTRUCTIONS
+    assert "a positive sign" in NEWS_SYNTHESIZER_INSTRUCTIONS

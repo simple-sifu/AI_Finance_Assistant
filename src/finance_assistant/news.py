@@ -61,12 +61,23 @@ EXCLUDE_DOMAINS = (
     "twitter.com",
     "reddit.com",
 )
+# A URL path segment that marks a section, topic, tag or quote page (a list of
+# headlines, not one article), e.g. wsj.com/topics/subject/federal-reserve.
+SECTION_PATH_SEGMENTS = frozenset(
+    {"topic", "topics", "tag", "tags", "category", "categories", "section", "sections", "hub", "quote", "quotes"}
+)
+# Two titles from the same outlet whose word sets overlap at least this much
+# (Jaccard) are one story syndicated under two URLs; only the first is kept.
+DUPLICATE_TITLE_SIMILARITY = 0.6
 # Upper bound on one article's excerpt, to keep the summary prompt small.
 MAX_EXCERPT_CHARS = 1500
 # Some results (e.g. social-media videos) carry a whole post as the title.
 MAX_TITLE_CHARS = 200
 
 _WHITESPACE_RE = re.compile(r"\s+")
+_TITLE_WORD_RE = re.compile(r"[a-z0-9']+")
+# A trailing " - Outlet" / " | Outlet" on a headline.
+_TITLE_OUTLET_RE = re.compile(r"\s+[-|\u2013\u2014]\s+[^-|\u2013\u2014]+$")
 
 
 class NewsUnavailableError(RuntimeError):
@@ -112,6 +123,31 @@ def _domain(url: str) -> str | None:
     return host or None
 
 
+def _is_section_page(url: str) -> bool:
+    """True for a site's front page or a section/topic/tag/quote page rather than one article."""
+    segments = [seg.lower() for seg in urlsplit(url).path.split("/") if seg]
+    return not segments or any(seg in SECTION_PATH_SEGMENTS for seg in segments)
+
+
+def _title_words(title: str) -> frozenset[str]:
+    text = _TITLE_OUTLET_RE.sub("", title).casefold().replace("\u2019", "'")
+    return frozenset(w.strip("'") for w in _TITLE_WORD_RE.findall(text) if w.strip("'"))
+
+
+def _is_duplicate(article: NewsArticle, kept: list[NewsArticle]) -> bool:
+    """Same URL, or the same outlet with a near-identical headline."""
+    words = _title_words(article.title)
+    for other in kept:
+        if other.url == article.url:
+            return True
+        if other.domain != article.domain or not words:
+            continue
+        other_words = _title_words(other.title)
+        if len(words & other_words) / len(words | other_words) >= DUPLICATE_TITLE_SIMILARITY:
+            return True
+    return False
+
+
 def _parse_date(value: object) -> date | None:
     """Tavily's ``published_date``: RFC 2822 ("Wed, 08 Oct 2026 14:00:00 GMT") or ISO 8601."""
     if not isinstance(value, str) or not value.strip():
@@ -132,7 +168,7 @@ def _clean(text: str) -> str:
 
 
 def _parse_result(item: object) -> NewsArticle | None:
-    """One result, or None if it lacks a usable title, http(s) URL, or excerpt."""
+    """One result, or None if it lacks a usable title, http(s) URL, or excerpt, or is a section page."""
     if not isinstance(item, dict):
         return None
     title, url, content = item.get("title"), item.get("url"), item.get("content")
@@ -140,7 +176,7 @@ def _parse_result(item: object) -> NewsArticle | None:
         return None
     title, url, content = _clean(title), url.strip(), _clean(content)
     domain = _domain(url)
-    if not title or not content or domain is None:
+    if not title or not content or domain is None or _is_section_page(url):
         return None
     if len(title) > MAX_TITLE_CHARS:
         title = title[:MAX_TITLE_CHARS].rstrip() + "…"
@@ -163,11 +199,9 @@ def parse_results(body: object) -> list[NewsArticle]:
     if not isinstance(results, list):
         raise NewsUnavailableError("response had no 'results' list")
     articles: list[NewsArticle] = []
-    seen: set[str] = set()
     for item in results:
         article = _parse_result(item)
-        if article is not None and article.url not in seen:
-            seen.add(article.url)
+        if article is not None and not _is_duplicate(article, articles):
             articles.append(article)
     return articles
 
