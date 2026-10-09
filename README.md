@@ -55,6 +55,23 @@ uv run --extra dev pytest -q
 
 Tests run offline. They ignore your `.env`, mock Alpha Vantage and OpenAI with respx (or inject a fake router classifier), and fail if anything opens a real network connection.
 
+### Routing and advice evals
+
+`tests/tutor/eval_cases.py` is the evaluation set. It has at least 6 plain questions and 2 advice-seeking prompts per agent, plus clarify cases and follow-ups. Two opt-in live evals use it and need `OPENAI_API_KEY` in `.env`:
+
+```bash
+uv run --extra dev pytest -m live tests/tutor/test_router_live.py tests/tutor/test_advice_eval_live.py -s
+```
+
+- `test_router_live.py` routes every case with the real router and prints a per-case and per-agent report. It passes when:
+  - each agent gets at least 5 plain questions right;
+  - overall route accuracy is at least 90%;
+  - every advice prompt is flagged as advice;
+  - at most 1 plain question is flagged as advice.
+- `test_advice_eval_live.py` sends one advice prompt per agent through `ask()` with the real agents and reviewer. Each reply must open with the educational redirect and end with the disclaimer.
+  - It costs about 20 OpenAI calls, one Tavily search and up to 2 Alpha Vantage calls.
+  - Without `ALPHA_VANTAGE_API_KEY` or `TAVILY_API_KEY`, market questions use mock data and news questions get the "unavailable" reply.
+
 ## Market data and mock mode
 
 ```python

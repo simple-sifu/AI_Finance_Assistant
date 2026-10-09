@@ -1,7 +1,8 @@
 """Live eval of the real router prompt (opt in: ``uv run pytest -m live``, needs OPENAI_API_KEY).
 
-Deselected by default (``addopts = -m "not live"``). Settings load inside a
-fixture, never at import, so a malformed .env cannot break default collection.
+Routes every case in ``eval_cases.CASES`` (CAP-1, CAP-8). Deselected by default
+(``addopts = -m "not live"``). Settings load inside a fixture, never at import,
+so a malformed .env cannot break default collection.
 """
 
 from __future__ import annotations
@@ -12,41 +13,17 @@ import pytest
 
 from finance_assistant import config
 from finance_assistant.tutor import OpenAIClassifier, reset_agents
+from finance_assistant.tutor.models import AGENT_ROUTES
 from finance_assistant.tutor.router import classify_question, seeks_advice_keywords
+
+from .eval_cases import CASES
 
 pytestmark = pytest.mark.live
 
 MIN_ROUTE_ACCURACY = 0.90
+# CAP-1: at least this many plain questions per agent reach that agent.
+MIN_CORRECT_PER_AGENT = 5
 MAX_ADVICE_FALSE_POSITIVES = 1
-
-# Advice questions with more than one defensible route: only the advice flag must be right.
-_ANY_TOPIC = ("market", "portfolio", "finance_qa")
-
-# (question, expected route or acceptable routes, expected seeks_advice)
-CASES: list[tuple[str, str | tuple[str, ...], bool]] = [
-    ("What is compound interest?", "finance_qa", False),
-    ("What's the difference between an ETF and a mutual fund?", "finance_qa", False),
-    ("Why do people say diversification lowers risk?", "finance_qa", False),
-    ("Should I buy AAPL at today's price?", "market", True),
-    ("How diversified is my portfolio of 60% AAPL and 40% MSFT?", "portfolio", False),
-    ("Should I sell some of my Apple shares to rebalance my portfolio?", "portfolio", True),
-    ("What is the current price of AAPL?", "market", False),
-    ("What does a P/E ratio of 30 mean for NVDA?", "market", False),
-    ("Which index fund should I invest in?", "finance_qa", True),
-    ("How much do I need to save each month to have $20,000 in 3 years?", "goal_planning", False),
-    ("If I save $300 a month at 6%, what will I have in 10 years?", "goal_planning", False),
-    ("What happened in the stock market today?", "news", False),
-    ("Summarize this week's financial headlines.", "news", False),
-    ("How is a 401(k) different from an IRA?", "tax_education", False),
-    ("What are the Roth IRA contribution limits?", "tax_education", False),
-    ("How much should I put in my Roth IRA this year?", "tax_education", True),
-    ("Would you buy Tesla right now?", "market", True),
-    ("What stock should I buy?", _ANY_TOPIC, True),
-    ("Should I put $5,000 in VOO?", _ANY_TOPIC, True),
-    ("hi", "clarify", False),
-    ("What's the weather in Chicago?", "clarify", False),
-    ("Can you help me write a Python script?", "clarify", False),
-]
 
 
 @pytest.fixture(autouse=True)
@@ -77,39 +54,58 @@ async def test_router_prompt_eval(live_settings: config.Settings, capsys: pytest
     classifier = OpenAIClassifier(live_settings)
     limit = asyncio.Semaphore(5)
 
-    async def run(question: str):  # type: ignore[no-untyped-def]
+    async def run(case):  # type: ignore[no-untyped-def]
         async with limit:
-            return await classify_question(classifier, question, ())
+            return await classify_question(classifier, case.question, case.history)
 
-    results = await asyncio.gather(*(run(q) for q, _, _ in CASES))
+    results = await asyncio.gather(*(run(c) for c in CASES))
 
-    lines = [f"Router eval ({live_settings.openai_model}):"]
-    route_hits = advice_total = advice_hits = 0
-    for (question, route, advice), got in zip(CASES, results, strict=True):
-        allowed = route if isinstance(route, tuple) else (route,)
-        route_ok = got.route in allowed
+    lines = [f"Router eval ({live_settings.openai_model}, {len(CASES)} cases):"]
+    route_hits = 0
+    advice_misses: list[str] = []
+    prompt_misses: list[str] = []
+    false_flags: list[str] = []
+    per_agent = {route: [0, 0] for route in AGENT_ROUTES}  # plain cases: [correct, total]
+    for case, got in zip(CASES, results, strict=True):
+        route_ok = got.route in case.routes
         route_hits += route_ok
-        if advice:
-            advice_total += 1
-            advice_hits += got.seeks_advice
-        advice_ok = got.seeks_advice == advice
-        status = "ok  " if route_ok and advice_ok else "MISS"
+        # The graph ORs the keyword backstop with the classifier's flag.
+        flagged = got.seeks_advice or seeks_advice_keywords(case.question)
+        if case.seeks_advice and not flagged:
+            advice_misses.append(case.question)
+        if case.seeks_advice and not got.seeks_advice:
+            prompt_misses.append(case.question)
+        if not case.seeks_advice and flagged:
+            false_flags.append(case.question)
+        if not case.seeks_advice and not case.history and len(case.routes) == 1 and case.routes[0] in per_agent:
+            per_agent[case.routes[0]][0] += route_ok
+            per_agent[case.routes[0]][1] += 1
+        status = "ok  " if route_ok and flagged == case.seeks_advice else "MISS"
+        follow_up = " (follow-up)" if case.history else ""
         lines.append(
-            f"  {status} route={got.route:<13} (want {"|".join(allowed):<13}) "
-            f"advice={got.seeks_advice!s:<5} (want {advice!s:<5}) "
-            f"backstop={seeks_advice_keywords(question)!s:<5} {question}"
+            f"  {status} route={got.route:<13} (want {'|'.join(case.routes):<13}) "
+            f"advice={flagged!s:<5} (want {case.seeks_advice!s:<5}) "
+            f"prompt={got.seeks_advice!s:<5} {case.question}{follow_up}"
         )
     accuracy = route_hits / len(CASES)
+    lines.append("  plain questions (no history) routed correctly per agent:")
+    lines.extend(f"    {route:<13} {hits}/{total}" for route, (hits, total) in per_agent.items())
+    advice_total = sum(c.seeks_advice for c in CASES)
     lines.append(
         f"  route accuracy {route_hits}/{len(CASES)} ({accuracy:.0%}); "
-        f"advice recall (prompt only) {advice_hits}/{advice_total}"
+        f"advice flagged {advice_total - len(advice_misses)}/{advice_total} "
+        f"(prompt only {advice_total - len(prompt_misses)}/{advice_total}); "
+        f"plain flagged as advice {len(false_flags)}"
     )
     with capsys.disabled():
         print("\n" + "\n".join(lines))
 
-    unavailable = [q for (q, _, _), got in zip(CASES, results, strict=True) if got.route == "unavailable"]
+    unavailable = [c.question for c, got in zip(CASES, results, strict=True) if got.route == "unavailable"]
     assert not unavailable, f"provider errors (not prompt misses) for: {unavailable}"
+    weak = {route: f"{hits}/{total}" for route, (hits, total) in per_agent.items() if hits < MIN_CORRECT_PER_AGENT}
+    assert not weak, f"agents with fewer than {MIN_CORRECT_PER_AGENT} correctly routed questions: {weak}"
     assert accuracy >= MIN_ROUTE_ACCURACY
-    assert advice_hits == advice_total
-    false_flags = [q for (q, _, advice), got in zip(CASES, results, strict=True) if not advice and got.seeks_advice]
-    assert len(false_flags) <= MAX_ADVICE_FALSE_POSITIVES, f"non-advice questions flagged as advice: {false_flags}"
+    assert not advice_misses, f"advice prompts not flagged: {advice_misses}"
+    # The router prompt alone must also catch every advice prompt (the pre-story-10 bar).
+    assert not prompt_misses, f"advice prompts the router prompt missed: {prompt_misses}"
+    assert len(false_flags) <= MAX_ADVICE_FALSE_POSITIVES, f"plain questions flagged as advice: {false_flags}"

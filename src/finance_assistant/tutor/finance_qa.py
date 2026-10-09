@@ -17,6 +17,7 @@ import logging
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -189,7 +190,11 @@ def build_prompt(request: AgentRequest, contexts: list[_ArticleContext]) -> str:
     for n, ctx in enumerate(contexts, start=1):
         excerpts = "\n\n".join(ctx.excerpts)
         blocks.append(f'[{n}] "{ctx.title}" ({ctx.source_name})\n{excerpts}')
-    parts = ["Article excerpts:\n\n" + "\n\n---\n\n".join(blocks)]
+    # The date lets the model pick the current tax year's figures when articles list several years.
+    parts = [
+        f"Today's date (UTC): {datetime.now(UTC).date().isoformat()}",
+        "Article excerpts:\n\n" + "\n\n---\n\n".join(blocks),
+    ]
     if request.history:
         parts.append(f"Conversation so far (for context only):\n{_format_history(request.history)}")
     parts.append(f"Question: {request.question.strip()}")
