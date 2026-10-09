@@ -28,3 +28,7 @@
 - source_spec: `_bmad-output/specs/spec-ai-finance-assistant/stories/3-knowledge-base-faiss-index-and-finance-qa-agent.md`
   summary: `knowledge/articles.py` finds `knowledge_base/` via `Path(__file__).parents[3]`, which breaks if the package is installed non-editable.
   evidence: Unverified (medium if true; story 3 review #23). Settle it in story 11; if the image installs non-editable, add a configurable path and fail clearly when the directory is missing.
+
+- source_spec: `_bmad-output/specs/spec-ai-finance-assistant/stories/6-goal-planning-agent.md`
+  summary: Agent replies contain several `$` amounts (story 5 figures, story 6 math lines), which Streamlit `st.markdown` may render as LaTeX between pairs of `$`.
+  evidence: Medium, unverified in this app (story 6 review #13). Settle it in story 9 by rendering a Goal Planning reply in the Chat tab; if the math garbles, escape `$` as `\$` when displaying agent text.
