@@ -101,3 +101,12 @@ def test_repr_hides_tavily_key() -> None:
     assert "tvly-SECRET789" not in str(settings)
     assert "tavily_api_key='<set>'" in repr(settings)
     assert "tavily_api_key=None" in repr(Settings())
+
+
+def test_app_password_from_env_and_hidden_in_repr() -> None:
+    settings = load_settings(environ={"APP_PASSWORD": " hunter2 "})
+    assert settings.app_password == "hunter2"
+    assert "hunter2" not in repr(settings)
+    assert "app_password='<set>'" in repr(settings)
+    assert load_settings(environ={"APP_PASSWORD": "  "}).app_password is None
+    assert load_settings(environ={}).app_password is None

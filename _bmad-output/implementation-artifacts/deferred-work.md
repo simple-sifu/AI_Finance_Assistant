@@ -25,9 +25,11 @@
 - source_spec: `_bmad-output/specs/spec-ai-finance-assistant/stories/3-knowledge-base-faiss-index-and-finance-qa-agent.md`
   summary: In the Docker image (story 11), the first Finance Q&A question may download the ~90 MB embedding model unless the Hugging Face cache from `build_index.py` is kept in the image (or `HF_HUB_OFFLINE` is set).
   evidence: Unverified (medium if true; story 3 review #13). Settle it when writing the Dockerfile by running the image offline and asking one Finance Q&A question.
+  resolution: CLOSED 2026-10-09 in story 11. The Dockerfile sets `HF_HOME=/app/.cache/huggingface`, runs `scripts/build_index.py` (which downloads the model into it), then sets `HF_HUB_OFFLINE=1`/`TRANSFORMERS_OFFLINE=1` and runs an index search during the build, so the image fails to build if the model would need a download. The runbook's `docker run --network none` check covers it on the server.
 - source_spec: `_bmad-output/specs/spec-ai-finance-assistant/stories/3-knowledge-base-faiss-index-and-finance-qa-agent.md`
   summary: `knowledge/articles.py` finds `knowledge_base/` via `Path(__file__).parents[3]`, which breaks if the package is installed non-editable.
   evidence: Unverified (medium if true; story 3 review #23). Settle it in story 11; if the image installs non-editable, add a configurable path and fail clearly when the directory is missing.
+  resolution: CLOSED 2026-10-09 in story 11. The image installs the project editable from `/app` (`uv sync --frozen --no-dev`), so `parents[3]` is `/app` and `knowledge_base/` sits next to `src/`. No code change. A missing articles directory fails `docker build` at the index step.
 
 - source_spec: `_bmad-output/specs/spec-ai-finance-assistant/stories/6-goal-planning-agent.md`
   summary: Agent replies contain several `$` amounts (story 5 figures, story 6 math lines), which Streamlit `st.markdown` may render as LaTeX between pairs of `$`.
