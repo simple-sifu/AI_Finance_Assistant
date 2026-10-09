@@ -31,6 +31,7 @@ from .models import (
     Source,
     TutorReply,
 )
+from .tax_education import TaxEducationAgent
 from .router import AdviceReviewer, Classifier, OpenAIAdviceReviewer, OpenAIClassifier
 
 __all__ = [
@@ -52,6 +53,7 @@ __all__ = [
     "Route",
     "Source",
     "StubAgent",
+    "TaxEducationAgent",
     "TutorReply",
     "UNAVAILABLE_TEXT",
     "apply_guardrail",
