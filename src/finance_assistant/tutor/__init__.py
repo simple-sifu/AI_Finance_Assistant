@@ -35,6 +35,7 @@ from ..goals import SavingsPlan, monthly_savings
 from ..portfolio import HoldingsFormatError, Portfolio, parse_holdings_csv
 from .goal_planning import GoalPlanningAgent
 from .market_analysis import MarketAnalysisAgent
+from .news_synthesizer import NewsSynthesizerAgent
 from .portfolio_analysis import PortfolioAnalysisAgent
 from .tax_education import TaxEducationAgent
 from .router import AdviceReviewer, Classifier, OpenAIAdviceReviewer, OpenAIClassifier
@@ -49,6 +50,7 @@ __all__ = [
     "GoalPlanningAgent",
     "HoldingsFormatError",
     "MarketAnalysisAgent",
+    "NewsSynthesizerAgent",
     "ROUTES",
     "SavingsPlan",
     "Agent",

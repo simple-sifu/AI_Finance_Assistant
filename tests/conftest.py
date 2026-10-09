@@ -9,6 +9,7 @@ import pytest
 from finance_assistant import config
 from finance_assistant.knowledge import index as knowledge_index
 from finance_assistant.market_data import reset_client
+from finance_assistant.news import reset_news_client
 from finance_assistant.tutor import reset_agents
 
 _ENV_VARS = (
@@ -17,6 +18,7 @@ _ENV_VARS = (
     "QUOTE_CACHE_TTL_SECONDS",
     "OPENAI_API_KEY",
     "OPENAI_MODEL",
+    "TAVILY_API_KEY",
 )
 
 
@@ -42,10 +44,12 @@ def _isolated_config(monkeypatch: pytest.MonkeyPatch):
         monkeypatch.delenv(name, raising=False)
     config.reset_settings()
     reset_client()
+    reset_news_client()
     reset_agents()
     yield
     config.reset_settings()
     reset_client()
+    reset_news_client()
     reset_agents()
 
 

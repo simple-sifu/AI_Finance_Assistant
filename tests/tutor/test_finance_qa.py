@@ -408,7 +408,6 @@ def real_agents(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
 
 async def test_install_real_agents_registers_finance_qa(real_agents: None) -> None:
     assert isinstance(get_agent("finance_qa"), FinanceQAAgent)
-    assert type(get_agent("news")).__name__ == "StubAgent"
 
 
 async def test_reset_agents_restores_the_stub(real_agents: None) -> None:

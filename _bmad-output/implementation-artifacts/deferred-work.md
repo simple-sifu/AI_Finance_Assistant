@@ -36,3 +36,7 @@
 - source_spec: `_bmad-output/specs/spec-ai-finance-assistant/stories/7-portfolio-analysis-agent-and-holdings-upload.md`
   summary: An uploaded portfolio passed to `ask(portfolio=...)` is silently ignored when the router picks a route other than `portfolio` (e.g. "Is my mix too risky?" → finance_qa).
   evidence: Medium (story 7 review #11). The classifier is never told a portfolio is attached. Settle it in story 9: either pre-scope the Portfolio tab to the `portfolio` route, or tell the router an upload is present.
+
+- source_spec: `_bmad-output/specs/spec-ai-finance-assistant/stories/8-news-synthesizer-agent.md`
+  summary: Citing agents (Finance Q&A, Tax Education, News Synthesizer) enforce "every factual sentence is cited" only through the prompt; an uncited closing sentence can reach the user.
+  evidence: `apply_citations` only requires at least one valid citation; story 8 live replies sometimes end with one uncited sentence. Fixing it needs a sentence-level check that tells factual sentences from connective ones, shared by all three agents.
