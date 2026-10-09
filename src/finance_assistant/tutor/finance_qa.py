@@ -239,8 +239,10 @@ def message_text(content: object) -> str:
     return "".join(parts).strip()
 
 
-def not_covered(request: AgentRequest) -> AgentResult:
-    text = f"{ADVICE_REDIRECT}\n\n{NOT_COVERED_TEXT}" if request.seeks_advice else NOT_COVERED_TEXT
+def not_covered(request: AgentRequest, text: str = NOT_COVERED_TEXT) -> AgentResult:
+    """The "my articles don't cover that" reply (``text``), after the advice redirect if needed."""
+    if request.seeks_advice:
+        text = f"{ADVICE_REDIRECT}\n\n{text}"
     return AgentResult(text=text)
 
 
@@ -249,7 +251,15 @@ class FinanceQAAgent:
 
     ``index_provider`` defaults to the process-wide lazy index; ``settings``
     default to ``get_settings()`` at call time. The LLM client is built per call.
+
+    Subclasses reuse the whole retrieval-and-citation pipeline and override only
+    the class attributes: ``name`` (for logs), ``instructions`` (the agent's part
+    of the system prompt) and ``not_covered_text`` (the no-match reply).
     """
+
+    name = "Finance Q&A"
+    instructions = FINANCE_QA_INSTRUCTIONS
+    not_covered_text = NOT_COVERED_TEXT
 
     def __init__(
         self,
@@ -271,26 +281,26 @@ class FinanceQAAgent:
         hits = await asyncio.to_thread(self._retrieve, retrieval_queries(request))
         contexts = group_hits(hits, self._min_score)
         if not contexts:
-            logger.info("Finance Q&A: no article above the relevance threshold")
-            return not_covered(request)
+            logger.info("%s: no article above the relevance threshold", self.name)
+            return not_covered(request, self.not_covered_text)
 
         settings = self._settings if self._settings is not None else get_settings()
         async with chat_model(settings, temperature=0.2) as model:
             message = await model.ainvoke(
                 [
-                    SystemMessage(build_system_prompt(FINANCE_QA_INSTRUCTIONS)),
+                    SystemMessage(build_system_prompt(self.instructions)),
                     HumanMessage(build_prompt(request, contexts)),
                 ]
             )
         answer = message_text(message.content)
         if not answer or answer.strip(" .\"'`") == NO_ANSWER_SENTINEL:
-            logger.info("Finance Q&A: the model found the excerpts don't cover the question")
-            return not_covered(request)
+            logger.info("%s: the model found the excerpts don't cover the question", self.name)
+            return not_covered(request, self.not_covered_text)
 
         text, sources = apply_citations(answer, contexts)
         if not sources:
-            logger.warning("Finance Q&A: answer cited no article; withholding it")
-            return not_covered(request)
+            logger.warning("%s: answer cited no article; withholding it", self.name)
+            return not_covered(request, self.not_covered_text)
         if request.seeks_advice and not text.startswith(ADVICE_REDIRECT):
             text = f"{ADVICE_REDIRECT}\n\n{text}"
         return AgentResult(text=text, sources=sources)

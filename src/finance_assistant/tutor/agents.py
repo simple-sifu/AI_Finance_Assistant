@@ -84,8 +84,10 @@ def install_real_agents() -> None:
     cheap; its heavy resources (e.g. the embedding model) load on first use.
     """
     from .finance_qa import FinanceQAAgent
+    from .tax_education import TaxEducationAgent
 
     register_agent("finance_qa", FinanceQAAgent())
+    register_agent("tax_education", TaxEducationAgent())
 
 
 def reset_agents() -> None:
