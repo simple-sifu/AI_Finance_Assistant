@@ -27,7 +27,7 @@ from pydantic import BaseModel, Field, ValidationError
 from ..config import ConfigurationError, Settings
 from .guardrail import ADVICE_REVIEW_PROMPT
 from .llm import chat_model
-from .models import CLASSIFIER_ROUTES, ChatTurn, Classification, ClassifierRoute
+from .models import AGENT_ROUTES, CLASSIFIER_ROUTES, ChatTurn, Classification, ClassifierRoute
 
 logger = logging.getLogger(__name__)
 
@@ -150,6 +150,34 @@ async def classify_question(
         logger.warning("Router classifier returned an invalid result (route=%r); routing to clarify", route)
         return Classification(route="clarify", seeks_advice=seeks_advice is True)
     return Classification(route=route, seeks_advice=seeks_advice)
+
+
+class ScopedClassifier:
+    """A classifier for a single-agent UI tab: always ``route``, advice flag from ``inner``.
+
+    It keeps ``inner``'s ``seeks_advice`` and replaces only the route, so the
+    advice redirect still works (and the graph still ORs the keyword backstop).
+    Exceptions from ``inner`` other than bad output propagate, so
+    ``classify_question`` still routes provider failures to ``unavailable``.
+    Unparseable output keeps the scoped route with ``seeks_advice`` False.
+    """
+
+    def __init__(self, route: str, inner: Classifier) -> None:
+        if route not in AGENT_ROUTES:
+            raise ValueError(f"route must be one of {list(AGENT_ROUTES)}, got {route!r}")
+        self.route = route
+        self._inner = inner
+
+    async def classify(self, question: str, history: Sequence[ChatTurn]) -> Classification:
+        try:
+            result = await self._inner.classify(question, history)
+        except _BAD_OUTPUT_ERRORS as exc:
+            logger.warning(
+                "Scoped classifier output unparseable (%s); keeping route %s", type(exc).__name__, self.route
+            )
+            return Classification(route=self.route)  # type: ignore[arg-type]
+        seeks_advice = getattr(result, "seeks_advice", None) is True
+        return Classification(route=self.route, seeks_advice=seeks_advice)  # type: ignore[arg-type]
 
 
 # --- Keyword backstop for seeks_advice ---------------------------------------

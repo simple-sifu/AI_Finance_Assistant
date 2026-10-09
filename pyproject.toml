@@ -15,6 +15,7 @@ dependencies = [
     "python-dotenv>=1.0",
     "pyyaml>=6",
     "sentence-transformers>=3.0",
+    "streamlit>=1.40",
     # Direct so [tool.uv.sources] can route it to the CPU-only wheels on Linux.
     "torch>=2.2",
 ]

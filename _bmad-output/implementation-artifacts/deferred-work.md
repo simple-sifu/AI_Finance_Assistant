@@ -32,10 +32,12 @@
 - source_spec: `_bmad-output/specs/spec-ai-finance-assistant/stories/6-goal-planning-agent.md`
   summary: Agent replies contain several `$` amounts (story 5 figures, story 6 math lines), which Streamlit `st.markdown` may render as LaTeX between pairs of `$`.
   evidence: Medium, unverified in this app (story 6 review #13). Settle it in story 9 by rendering a Goal Planning reply in the Chat tab; if the math garbles, escape `$` as `\$` when displaying agent text.
+  resolution: CLOSED 2026-10-09 in story 9. The UI escapes every unescaped `$` outside code spans as `\$` before `st.markdown` (`ui.helpers.escape_markdown_dollars`); covered by `tests/ui/test_helpers.py` and the Goals/Markets AppTest cases, and checked live with a Goals form submit.
 
 - source_spec: `_bmad-output/specs/spec-ai-finance-assistant/stories/7-portfolio-analysis-agent-and-holdings-upload.md`
   summary: An uploaded portfolio passed to `ask(portfolio=...)` is silently ignored when the router picks a route other than `portfolio` (e.g. "Is my mix too risky?" → finance_qa).
   evidence: Medium (story 7 review #11). The classifier is never told a portfolio is attached. Settle it in story 9: either pre-scope the Portfolio tab to the `portfolio` route, or tell the router an upload is present.
+  resolution: CLOSED 2026-10-09 in story 9. The Portfolio tab sends its questions with `ScopedClassifier("portfolio", ...)`, so an upload always reaches the Portfolio agent (advice flag kept). The Chat tab has no upload. Covered by `test_portfolio_upload_preview_then_analysis` ("Is my mix too risky?").
 
 - source_spec: `_bmad-output/specs/spec-ai-finance-assistant/stories/8-news-synthesizer-agent.md`
   summary: Citing agents (Finance Q&A, Tax Education, News Synthesizer) enforce "every factual sentence is cited" only through the prompt; an uncited closing sentence can reach the user.

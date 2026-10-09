@@ -38,7 +38,7 @@ from .market_analysis import MarketAnalysisAgent
 from .news_synthesizer import NewsSynthesizerAgent
 from .portfolio_analysis import PortfolioAnalysisAgent
 from .tax_education import TaxEducationAgent
-from .router import AdviceReviewer, Classifier, OpenAIAdviceReviewer, OpenAIClassifier
+from .router import AdviceReviewer, Classifier, OpenAIAdviceReviewer, OpenAIClassifier, ScopedClassifier
 
 __all__ = [
     "ADVICE_REDIRECT",
@@ -53,6 +53,7 @@ __all__ = [
     "NewsSynthesizerAgent",
     "ROUTES",
     "SavingsPlan",
+    "ScopedClassifier",
     "Agent",
     "AgentRequest",
     "AgentResult",
