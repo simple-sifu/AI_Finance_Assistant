@@ -56,9 +56,9 @@ The image:
 - installs CPU-only PyTorch;
 - builds the FAISS index during `docker build`;
 - caches the embedding model in the image, and the build checks that the index loads and searches with `HF_HUB_OFFLINE=1`;
-- reads keys only at run time from `--env-file`.
+- reads keys only at run time from an env file mounted read-only at `/app/.env`.
 
-To build locally (needs Docker): `docker build -t finance-assistant .` then `docker run --rm -p 8501:8501 --env-file .env finance-assistant`.
+To build locally (needs Docker): `docker build -t finance-assistant .` then `docker run --rm -p 8501:8501 -v "$PWD/.env:/app/.env:ro" finance-assistant`.
 
 ## Running tests
 
