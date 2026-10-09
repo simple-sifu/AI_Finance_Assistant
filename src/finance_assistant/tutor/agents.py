@@ -86,9 +86,11 @@ def install_real_agents() -> None:
     from .finance_qa import FinanceQAAgent
     from .goal_planning import GoalPlanningAgent
     from .market_analysis import MarketAnalysisAgent
+    from .portfolio_analysis import PortfolioAnalysisAgent
     from .tax_education import TaxEducationAgent
 
     register_agent("finance_qa", FinanceQAAgent())
+    register_agent("portfolio", PortfolioAnalysisAgent())
     register_agent("market", MarketAnalysisAgent())
     register_agent("goal_planning", GoalPlanningAgent())
     register_agent("tax_education", TaxEducationAgent())

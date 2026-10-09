@@ -32,3 +32,7 @@
 - source_spec: `_bmad-output/specs/spec-ai-finance-assistant/stories/6-goal-planning-agent.md`
   summary: Agent replies contain several `$` amounts (story 5 figures, story 6 math lines), which Streamlit `st.markdown` may render as LaTeX between pairs of `$`.
   evidence: Medium, unverified in this app (story 6 review #13). Settle it in story 9 by rendering a Goal Planning reply in the Chat tab; if the math garbles, escape `$` as `\$` when displaying agent text.
+
+- source_spec: `_bmad-output/specs/spec-ai-finance-assistant/stories/7-portfolio-analysis-agent-and-holdings-upload.md`
+  summary: An uploaded portfolio passed to `ask(portfolio=...)` is silently ignored when the router picks a route other than `portfolio` (e.g. "Is my mix too risky?" → finance_qa).
+  evidence: Medium (story 7 review #11). The classifier is never told a portfolio is attached. Settle it in story 9: either pre-scope the Portfolio tab to the `portfolio` route, or tell the router an upload is present.

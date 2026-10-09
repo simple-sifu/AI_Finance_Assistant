@@ -32,8 +32,10 @@ from .models import (
     TutorReply,
 )
 from ..goals import SavingsPlan, monthly_savings
+from ..portfolio import HoldingsFormatError, Portfolio, parse_holdings_csv
 from .goal_planning import GoalPlanningAgent
 from .market_analysis import MarketAnalysisAgent
+from .portfolio_analysis import PortfolioAnalysisAgent
 from .tax_education import TaxEducationAgent
 from .router import AdviceReviewer, Classifier, OpenAIAdviceReviewer, OpenAIClassifier
 
@@ -45,6 +47,7 @@ __all__ = [
     "DISCLAIMER",
     "EDUCATION_SYSTEM_PROMPT",
     "GoalPlanningAgent",
+    "HoldingsFormatError",
     "MarketAnalysisAgent",
     "ROUTES",
     "SavingsPlan",
@@ -56,6 +59,8 @@ __all__ = [
     "Classifier",
     "OpenAIAdviceReviewer",
     "OpenAIClassifier",
+    "Portfolio",
+    "PortfolioAnalysisAgent",
     "Route",
     "Source",
     "StubAgent",
@@ -69,6 +74,7 @@ __all__ = [
     "get_agent",
     "install_real_agents",
     "monthly_savings",
+    "parse_holdings_csv",
     "register_agent",
     "reset_agents",
 ]

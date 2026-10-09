@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Literal, get_args
+from typing import TYPE_CHECKING, Literal, get_args
+
+if TYPE_CHECKING:  # type only: keep this module light
+    from ..portfolio import Portfolio
 
 # Routes the classifier may choose: the six agents plus ``clarify``.
 ClassifierRoute = Literal[
@@ -50,11 +53,13 @@ class Source:
 
 @dataclass(frozen=True)
 class AgentRequest:
-    """What an agent receives: the question, prior turns, and the router's advice flag."""
+    """What an agent receives: the question, prior turns, the router's advice flag, and an
+    optional session-only uploaded portfolio."""
 
     question: str
     history: tuple[ChatTurn, ...] = ()
     seeks_advice: bool = False
+    portfolio: Portfolio | None = None
 
 
 @dataclass(frozen=True)
