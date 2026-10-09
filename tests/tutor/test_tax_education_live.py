@@ -7,6 +7,8 @@ Deselected by default; settings load inside a fixture, never at import.
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from finance_assistant import config
@@ -132,3 +134,34 @@ async def test_uncovered_tax_question_is_not_covered(live_settings: config.Setti
     result = await TaxEducationAgent(settings=live_settings).run(AgentRequest("How do I file my state taxes?"))
     assert result.sources == []
     assert result.text == TAX_NOT_COVERED_TEXT
+
+
+# Claims the agent once made from a chunk that had lost the comparison chart's column header.
+_ROTH_IRA_HAS_NO_INCOME_LIMIT = re.compile(
+    r"no income limit\w*(?: to participate)?(?: for| on)?(?: participating in| contributing to)? (?:a |your )?roth ira"
+    r"|roth iras? (?:has|have) no income limit",
+    re.IGNORECASE,
+)
+# Roth IRA income limits for 2021-2023 in the comparison chart, never the current ones.
+_OLD_ROTH_INCOME_LIMITS = ("$208,000", "$140,000", "$214,000", "$144,000", "$228,000", "$153,000")
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "How much should I put in my Roth IRA this year?",
+        "What are the Roth IRA contribution limits?",
+        "How is a Roth IRA different from a Roth 401(k)?",
+    ],
+)
+async def test_roth_ira_figures_are_current_and_attributed(live_settings: config.Settings, question: str) -> None:
+    """Story 10 regression: income limits belong to the right account, and limits use the latest year."""
+    install_real_agents()
+    reply = await ask(question)
+    print(f"\n--- {question}\n{reply.text}\n{[s.title for s in reply.sources]}")
+    assert reply.route == "tax_education"
+    assert not _ROTH_IRA_HAS_NO_INCOME_LIMIT.search(reply.text)
+    assert not any(figure in reply.text for figure in _OLD_ROTH_INCOME_LIMITS)
+    if "contribution limits" in question or "this year" in question:
+        # 2026 is the latest year in retirement-topics-ira-contribution-limits; update with the article.
+        assert "2026" in reply.text and "$7,500" in reply.text and "$8,600" in reply.text

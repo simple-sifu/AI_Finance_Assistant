@@ -203,7 +203,10 @@ def _atomic_write(path: Path, data: bytes) -> None:
 
 def index_fingerprint(articles_dir: Path | None = None) -> str:
     """Identifies what a built index depends on: the article files and the chunking settings."""
-    settings = f"chunk_chars={chunking.CHUNK_CHARS};overlap_chars={chunking.OVERLAP_CHARS}"
+    settings = (
+        f"chunk_chars={chunking.CHUNK_CHARS};overlap_chars={chunking.OVERLAP_CHARS};"
+        f"chunker={chunking.CHUNKER_VERSION}"
+    )
     return f"{articles_fingerprint(articles_dir)}:{settings}"
 
 
