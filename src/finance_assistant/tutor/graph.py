@@ -21,6 +21,7 @@ from typing import Any, TypedDict
 from langgraph.graph import END, START, StateGraph
 
 from ..config import get_settings
+from ..portfolio import Portfolio
 from .agents import (
     ADVICE_REVIEW_NOTE,
     AGENT_FAILURE_TEXT,
@@ -58,6 +59,8 @@ ADVICE_REPLACEMENT_TEXT = f"{ADVICE_REDIRECT}\n\n{ADVICE_REVIEW_NOTE}"
 class TutorState(TypedDict, total=False):
     question: str
     history: tuple[ChatTurn, ...]
+    # Session-only uploaded holdings; passed to the agent, never stored.
+    portfolio: Portfolio | None
     route: Route
     seeks_advice: bool
     result: AgentResult
@@ -71,6 +74,7 @@ def _request(state: TutorState) -> AgentRequest:
         question=state["question"],
         history=state.get("history", ()),
         seeks_advice=state.get("seeks_advice", False),
+        portfolio=state.get("portfolio"),
     )
 
 
@@ -156,6 +160,7 @@ async def ask(
     question: str,
     history: Sequence[ChatTurn] | None = None,
     *,
+    portfolio: Portfolio | None = None,
     classifier: Classifier | None = None,
     reviewer: AdviceReviewer | None = None,
 ) -> TutorReply:
@@ -173,17 +178,24 @@ async def ask(
     gives personal advice is replaced by the advice redirect; a failed review
     fails closed with the "couldn't finish answering" reply. Either way the
     route is unchanged and sources are dropped.
+
+    ``portfolio`` is an optional uploaded portfolio (see
+    ``finance_assistant.portfolio.parse_holdings_csv``), kept in memory for this
+    call only; agents other than Portfolio Analysis ignore it. Raises
+    ``TypeError`` if it is not a ``Portfolio``.
     """
     if not isinstance(question, str) or not question.strip():
         raise ValueError("question must be a non-empty string")
     turns = tuple(history or ())
     if not all(isinstance(t, ChatTurn) for t in turns):
         raise ValueError("history must be a list of ChatTurn")
+    if portfolio is not None and not isinstance(portfolio, Portfolio):
+        raise TypeError("portfolio must be a Portfolio (see parse_holdings_csv)")
     if classifier is None:
         classifier = OpenAIClassifier(get_settings())
 
     final = await build_graph(classifier, reviewer).ainvoke(
-        {"question": question.strip(), "history": turns}
+        {"question": question.strip(), "history": turns, "portfolio": portfolio}
     )
     result: AgentResult = final["result"]
     return TutorReply(
