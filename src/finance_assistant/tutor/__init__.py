@@ -31,6 +31,7 @@ from .models import (
     Source,
     TutorReply,
 )
+from .market_analysis import MarketAnalysisAgent
 from .tax_education import TaxEducationAgent
 from .router import AdviceReviewer, Classifier, OpenAIAdviceReviewer, OpenAIClassifier
 
@@ -41,6 +42,7 @@ __all__ = [
     "AdviceReviewer",
     "DISCLAIMER",
     "EDUCATION_SYSTEM_PROMPT",
+    "MarketAnalysisAgent",
     "ROUTES",
     "Agent",
     "AgentRequest",

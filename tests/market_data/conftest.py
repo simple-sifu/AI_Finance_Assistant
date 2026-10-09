@@ -42,6 +42,7 @@ class FakeClock:
     def __init__(self, start: float = START) -> None:
         self._now = start
         self._lock = threading.Lock()
+        self.sleeps: list[float] = []
 
     def __call__(self) -> float:
         with self._lock:
@@ -54,6 +55,11 @@ class FakeClock:
     def set(self, value: float) -> None:
         with self._lock:
             self._now = value
+
+    async def sleep(self, seconds: float) -> None:
+        """Stand-in for ``asyncio.sleep``: records the wait and advances the clock instantly."""
+        self.sleeps.append(seconds)
+        self.advance(seconds)
 
 
 @pytest.fixture

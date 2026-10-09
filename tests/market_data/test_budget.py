@@ -5,6 +5,8 @@ from __future__ import annotations
 import threading
 from datetime import UTC, datetime
 
+import pytest
+
 from finance_assistant.market_data.budget import CallBudget
 
 from .conftest import FakeClock
@@ -82,3 +84,93 @@ def test_reservation_is_atomic_across_threads(clock: FakeClock) -> None:
     for t in threads:
         t.join()
     assert results.count(True) == 5
+
+
+# -- 1 s spacing (Alpha Vantage's burst limit) --------------------------------
+
+
+async def test_acquire_spaces_back_to_back_calls_one_second_apart(clock: FakeClock) -> None:
+    budget = CallBudget(clock=clock, sleep=clock.sleep)
+    assert await budget.acquire()
+    assert clock.sleeps == []  # the first call never waits
+    assert await budget.acquire()
+    assert clock.sleeps == [pytest.approx(1.1)]  # the second waits until 1.1 s after the first
+    clock.advance(0.4)
+    assert await budget.acquire()
+    assert clock.sleeps == [pytest.approx(1.1), pytest.approx(0.7)]
+
+
+async def test_acquire_does_not_wait_when_calls_are_already_spaced(clock: FakeClock) -> None:
+    budget = CallBudget(clock=clock, sleep=clock.sleep)
+    assert await budget.acquire()
+    clock.advance(1.5)
+    assert await budget.acquire()
+    assert clock.sleeps == []
+
+
+async def test_acquire_books_concurrent_callers_into_distinct_slots(clock: FakeClock) -> None:
+    budget = CallBudget(clock=clock)
+    delays = [budget.reserve() for _ in range(3)]  # three callers arrive at the same instant
+    assert delays == [0.0, pytest.approx(1.1), pytest.approx(2.2)]
+
+
+async def test_acquire_denied_by_limits_returns_false_without_waiting(clock: FakeClock) -> None:
+    budget = CallBudget(clock=clock, sleep=clock.sleep)
+    budget.pause()
+    assert not await budget.acquire()
+    assert clock.sleeps == []
+    assert budget.remaining_this_minute == 5  # a denied attempt reserves nothing
+
+
+async def test_acquire_keeps_the_minute_limit(clock: FakeClock) -> None:
+    budget = CallBudget(clock=clock, sleep=clock.sleep)
+    for _ in range(5):
+        assert await budget.acquire()
+    assert not await budget.acquire()  # five in the last 60 s, spacing or not
+    assert clock.sleeps == [pytest.approx(1.1)] * 4
+
+
+async def test_acquire_waits_without_blocking_the_event_loop() -> None:
+    import asyncio
+    import time
+    from contextlib import suppress
+
+    budget = CallBudget(min_spacing_seconds=0.2)  # real clock, real asyncio.sleep
+    ticks = 0
+
+    async def ticker() -> None:
+        nonlocal ticks
+        while True:
+            ticks += 1
+            await asyncio.sleep(0.01)
+
+    task = asyncio.create_task(ticker())
+    await asyncio.sleep(0)  # let the ticker start
+    ticks = 0
+    start = time.monotonic()
+    assert await budget.acquire() and await budget.acquire()
+    elapsed = time.monotonic() - start
+    task.cancel()
+    with suppress(asyncio.CancelledError):
+        await task
+    assert elapsed >= 0.1
+    assert ticks >= 1  # other tasks kept running during the wait
+
+
+async def test_pause_during_the_wait_cancels_the_call(clock: FakeClock) -> None:
+    budget = CallBudget(clock=clock)
+
+    async def sleep_then_rate_limited(seconds: float) -> None:
+        budget.pause()  # e.g. the previous call got a rate-limit body meanwhile
+        clock.advance(seconds)
+
+    budget._sleep = sleep_then_rate_limited  # type: ignore[method-assign]
+    assert await budget.acquire()
+    assert not await budget.acquire()
+
+
+def test_backward_clock_step_never_waits_more_than_one_spacing(clock: FakeClock) -> None:
+    budget = CallBudget(clock=clock)
+    assert budget.reserve() == 0.0
+    clock.advance(-3600)  # the wall clock steps back an hour
+    assert budget.reserve() == pytest.approx(1.1)

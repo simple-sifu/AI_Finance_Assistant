@@ -18,6 +18,7 @@ from finance_assistant.market_data import (
     SymbolNotFoundError,
     get_quote,
 )
+from finance_assistant.market_data.budget import CallBudget
 from finance_assistant.market_data.client import ALPHA_VANTAGE_URL
 from finance_assistant.market_data.mock import mock_symbols
 
@@ -44,7 +45,9 @@ def quote_route(av: respx.MockRouter, symbol: str | None = None):
 def make_client(clock: FakeClock):
     def factory(**settings_kwargs) -> MarketDataClient:
         settings_kwargs.setdefault("alpha_vantage_api_key", TEST_API_KEY)
-        return MarketDataClient(Settings(**settings_kwargs), clock=clock)
+        # Spacing waits advance the fake clock instead of sleeping for real.
+        budget = CallBudget(clock=clock, sleep=clock.sleep)
+        return MarketDataClient(Settings(**settings_kwargs), clock=clock, budget=budget)
 
     return factory
 
@@ -490,3 +493,47 @@ async def test_cancelled_waiter_does_not_leak_lock(av, make_client, clock) -> No
     assert (await holder).source == "live"
     clock.advance(31 * 60)  # expire the cache so the next call must take the lock again
     assert (await asyncio.wait_for(client.get_quote("SPY"), 2)).source == "live"
+
+
+# -- burst spacing -------------------------------------------------------------
+
+
+async def test_back_to_back_live_calls_are_spaced_one_second_apart(av, make_client, clock) -> None:
+    sent_at: list[float] = []
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        sent_at.append(clock())
+        return httpx.Response(200, json=global_quote_for(request.url.params["symbol"]))
+
+    route = quote_route(av).mock(side_effect=respond)
+    client = make_client()
+
+    first = await client.get_quote("VOO")
+    second = await client.get_quote("QQQ")
+
+    assert (first.source, second.source) == ("live", "live")  # waited, did not fall back
+    assert route.call_count == 2
+    assert sent_at[1] - sent_at[0] == pytest.approx(1.1)
+    assert clock.sleeps == [pytest.approx(1.1)]
+    assert not client.budget.paused
+
+
+async def test_waiter_queued_behind_a_rate_limited_call_sends_no_request(av, clock) -> None:
+    async def rate_limited(request: httpx.Request) -> httpx.Response:
+        await asyncio.sleep(0.02)  # in flight while the second caller books its slot
+        return httpx.Response(200, json={"Note": "Thank you for using Alpha Vantage! ..."})
+
+    route = quote_route(av).mock(side_effect=rate_limited)
+
+    async def slow_fake_sleep(seconds: float) -> None:
+        await asyncio.sleep(0.05)  # real yield, so the first response lands during the wait
+        clock.advance(seconds)
+
+    budget = CallBudget(clock=clock, sleep=slow_fake_sleep)
+    client = MarketDataClient(Settings(alpha_vantage_api_key=TEST_API_KEY), clock=clock, budget=budget)
+
+    first, second = await asyncio.gather(client.get_quote("SPY"), client.get_quote("AAPL"))
+
+    assert route.call_count == 1  # the queued AAPL call saw the pause and fell back
+    assert (first.source, second.source) == ("mock", "mock")
+    assert client.budget.paused
