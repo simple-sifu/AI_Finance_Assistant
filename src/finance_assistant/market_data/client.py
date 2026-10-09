@@ -1,10 +1,11 @@
 """Alpha Vantage quote client with a TTL cache, call budget, and fallback chain.
 
-Lookup order: fresh cache -> live GLOBAL_QUOTE (only if the budget allows)
--> stale cache -> bundled mock. Quota, network, timeout, and rate-limit
-problems never raise; they fall through the chain. A live "unknown symbol"
-answer raises ``SymbolNotFoundError`` (cached for the TTL) and is deliberately
-not masked with mock data.
+Lookup order: fresh cache -> live GLOBAL_QUOTE (only if the budget allows;
+live calls wait to stay just over 1 s apart) -> stale cache -> bundled mock.
+Quota, network, timeout, and rate-limit problems never raise; they fall
+through the chain. A live "unknown symbol" answer raises
+``SymbolNotFoundError`` (cached for the TTL) and is deliberately not masked
+with mock data.
 
 Streamlit runs each session in its own thread and calls ``asyncio.run`` per
 interaction, so nothing here outlives one call: each live request uses a
@@ -158,7 +159,7 @@ class MarketDataClient:
             hit = self._fresh(sym)
             if hit is not None:
                 return hit
-            if self._budget.try_acquire():
+            if await self._budget.acquire():
                 try:
                     quote = await self._fetch_live(sym)
                 except SymbolNotFoundError:
