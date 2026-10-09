@@ -19,6 +19,7 @@ _ENV_VARS = (
     "OPENAI_API_KEY",
     "OPENAI_MODEL",
     "TAVILY_API_KEY",
+    "APP_PASSWORD",
 )
 
 

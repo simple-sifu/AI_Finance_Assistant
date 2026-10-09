@@ -352,3 +352,36 @@ def test_whitespace_only_form_input_sends_nothing(
     assert classifier.calls == []
     assert not at.chat_message
     assert not at.error
+
+
+def _sign_in(at: AppTest, password: str) -> AppTest:
+    at.text_input(key="password").set_value(password)
+    at.button(key="FormSubmitter:password_form-Sign in").click().run()
+    assert not at.exception
+    return at
+
+
+def test_password_screen_hides_tabs_until_signed_in(
+    monkeypatch: pytest.MonkeyPatch, agents: dict[str, RecordingAgent]
+) -> None:
+    monkeypatch.setenv("APP_PASSWORD", "open-sesame")
+    at = run_app()
+    assert not at.tabs
+    assert [t.key for t in at.text_input] == ["password"]
+
+    _sign_in(at, "wrong")
+    assert not at.tabs
+    assert [e.value for e in at.error] == [ui_app.WRONG_PASSWORD_TEXT]
+    assert not any(agent.requests for agent in agents.values())
+
+    _sign_in(at, " open-sesame ")  # pasted with spaces
+    assert [t.label for t in at.tabs] == list(ui_app.TAB_NAMES)
+    assert not at.error
+    at.run()  # stays signed in for the session
+    assert [t.label for t in at.tabs] == list(ui_app.TAB_NAMES)
+
+
+def test_no_password_configured_shows_tabs_directly() -> None:
+    at = run_app()
+    assert [t.label for t in at.tabs] == list(ui_app.TAB_NAMES)
+    assert all(t.key != "password" for t in at.text_input)

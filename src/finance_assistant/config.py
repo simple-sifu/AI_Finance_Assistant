@@ -38,6 +38,8 @@ class Settings:
     openai_api_key: str | None = None
     openai_model: str = DEFAULT_OPENAI_MODEL
     tavily_api_key: str | None = None
+    # Shared password for the deployed app; None means no password screen (local dev).
+    app_password: str | None = None
 
     def __post_init__(self) -> None:
         if self.market_data_mode not in MARKET_DATA_MODES:
@@ -63,13 +65,15 @@ class Settings:
         av_key = "<set>" if self.alpha_vantage_api_key else None
         openai_key = "<set>" if self.openai_api_key else None
         tavily_key = "<set>" if self.tavily_api_key else None
+        app_password = "<set>" if self.app_password else None
         return (
             f"Settings(alpha_vantage_api_key={av_key!r}, "
             f"market_data_mode={self.market_data_mode!r}, "
             f"quote_cache_ttl_seconds={self.quote_cache_ttl_seconds!r}, "
             f"openai_api_key={openai_key!r}, "
             f"openai_model={self.openai_model!r}, "
-            f"tavily_api_key={tavily_key!r})"
+            f"tavily_api_key={tavily_key!r}, "
+            f"app_password={app_password!r})"
         )
 
 
@@ -97,6 +101,7 @@ def load_settings(
     openai_key = (values.get("OPENAI_API_KEY") or "").strip() or None
     openai_model = (values.get("OPENAI_MODEL") or "").strip() or DEFAULT_OPENAI_MODEL
     tavily_key = (values.get("TAVILY_API_KEY") or "").strip() or None
+    app_password = (values.get("APP_PASSWORD") or "").strip() or None
     return Settings(
         alpha_vantage_api_key=key,
         market_data_mode=mode,
@@ -104,6 +109,7 @@ def load_settings(
         openai_api_key=openai_key,
         openai_model=openai_model,
         tavily_api_key=tavily_key,
+        app_password=app_password,
     )
 
 

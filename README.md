@@ -21,6 +21,7 @@ cp .env.example .env                # then add your OPENAI_API_KEY and ALPHA_VAN
 | `OPENAI_API_KEY` | unset | OpenAI key for the router and agents. Required to ask questions; `ask` raises `ConfigurationError` naming it if unset. |
 | `OPENAI_MODEL` | `gpt-4o-mini` | OpenAI model used by the router and agents. Must be a model your OpenAI project can access. |
 | `TAVILY_API_KEY` | unset | Tavily key for the News Synthesizer's news search. If unset, news questions get a "can't look up current news right now" reply. |
+| `APP_PASSWORD` | unset | Shared password for the deployed app. If set, a password screen comes before the tabs; if unset (local use), there is none. |
 
 Real environment variables take precedence over `.env`.
 
@@ -46,6 +47,18 @@ Every answer comes from `ask`, so it carries the disclaimer, and cited sources a
 - Without `TAVILY_API_KEY`, News replies that it can't look up current news right now.
 
 `.streamlit/config.toml` limits uploads to 1 MB (the holdings parser's limit) and turns off Streamlit's usage statistics.
+
+## Deployment
+
+The app ships as one Docker image (`Dockerfile`) and runs on one AWS EC2 `t3.small` at `http://<elastic-ip>`, behind `APP_PASSWORD`. [`deploy/RUNBOOK.md`](deploy/RUNBOOK.md) has the step-by-step console guide; [`deploy/setup-server.sh`](deploy/setup-server.sh) sets up or updates the server.
+
+The image:
+- installs CPU-only PyTorch;
+- builds the FAISS index during `docker build`;
+- caches the embedding model in the image, and the build checks that the index loads and searches with `HF_HUB_OFFLINE=1`;
+- reads keys only at run time from `--env-file`.
+
+To build locally (needs Docker): `docker build -t finance-assistant .` then `docker run --rm -p 8501:8501 --env-file .env finance-assistant`.
 
 ## Running tests
 

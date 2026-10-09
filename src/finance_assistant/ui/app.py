@@ -11,12 +11,16 @@ they are). Single-agent panels pass a ``ScopedClassifier``, which keeps the
 router's advice flag but fixes the route. Uploads and conversations live only in
 ``st.session_state``; nothing is written to disk.
 
+When ``APP_PASSWORD`` is set (the deployed app), a password screen comes first
+and nothing else renders until the visitor enters it.
+
 Run with ``uv run streamlit run app.py`` from the repository root.
 """
 
 from __future__ import annotations
 
 import asyncio
+import hmac
 import logging
 from collections.abc import Callable
 
@@ -48,6 +52,8 @@ PORTFOLIO_FORMAT_HINT = (
     "(each row gives one of them; a value is the dollar amount you hold). Example:\n\n"
     "```\nticker,shares,value\nVOO,10,\nAAPL,,7250\n```"
 )
+
+WRONG_PASSWORD_TEXT = "Incorrect password."
 
 BAD_UPLOAD_TEXT = "Fix the problems in your holdings file before asking; nothing was sent."
 
@@ -275,10 +281,29 @@ def knowledge_tab() -> None:
 TABS: tuple[Callable[[], None], ...] = (chat_tab, portfolio_tab, markets_tab, goals_tab, knowledge_tab)
 
 
+def _signed_in() -> bool:
+    """True when no password is configured or this session entered it; else show the password screen."""
+    password = get_settings().app_password
+    if password is None or st.session_state.get("signed_in"):
+        return True
+    with st.form("password_form", clear_on_submit=True):
+        entered = st.text_input("Password", type="password", key="password")
+        submitted = st.form_submit_button("Sign in")
+    if submitted:
+        # APP_PASSWORD is stripped when loaded, so strip the entry too (pasted spaces).
+        if hmac.compare_digest(entered.strip().encode(), password.encode()):
+            st.session_state["signed_in"] = True
+            st.rerun()
+        st.error(WRONG_PASSWORD_TEXT)
+    return False
+
+
 def main() -> None:
     st.set_page_config(page_title="AI Finance Tutor", layout="centered")
     st.title("AI Finance Tutor")
     st.caption("A patient tutor that explains investing. It teaches and never gives personal advice.")
+    if not _signed_in():
+        st.stop()
     _install_agents()
     for tab, render in zip(st.tabs(list(TAB_NAMES)), TABS, strict=True):
         with tab:

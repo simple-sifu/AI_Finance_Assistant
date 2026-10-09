@@ -1,0 +1,23 @@
+# Secrets never enter the image; keys come from --env-file at run time.
+.env
+.env.*
+!.env.example
+
+.git
+.venv
+__pycache__
+*.py[cod]
+.pytest_cache
+.DS_Store
+
+# Not needed at run time
+tests
+deploy/*
+!deploy/check_index.py
+_bmad
+_bmad-output
+.claude
+.agents
+
+# Built inside the image
+knowledge_base/index
