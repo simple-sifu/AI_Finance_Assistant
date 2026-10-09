@@ -31,6 +31,8 @@ from .models import (
     Source,
     TutorReply,
 )
+from ..goals import SavingsPlan, monthly_savings
+from .goal_planning import GoalPlanningAgent
 from .market_analysis import MarketAnalysisAgent
 from .tax_education import TaxEducationAgent
 from .router import AdviceReviewer, Classifier, OpenAIAdviceReviewer, OpenAIClassifier
@@ -42,8 +44,10 @@ __all__ = [
     "AdviceReviewer",
     "DISCLAIMER",
     "EDUCATION_SYSTEM_PROMPT",
+    "GoalPlanningAgent",
     "MarketAnalysisAgent",
     "ROUTES",
+    "SavingsPlan",
     "Agent",
     "AgentRequest",
     "AgentResult",
@@ -64,6 +68,7 @@ __all__ = [
     "build_system_prompt",
     "get_agent",
     "install_real_agents",
+    "monthly_savings",
     "register_agent",
     "reset_agents",
 ]
