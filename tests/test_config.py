@@ -84,3 +84,20 @@ def test_require_openai_api_key() -> None:
     assert Settings(openai_api_key="sk-x").require_openai_api_key() == "sk-x"
     with pytest.raises(ConfigurationError, match="OPENAI_API_KEY"):
         Settings().require_openai_api_key()
+
+
+def test_tavily_key_from_env_file_and_env(tmp_path: Path) -> None:
+    env_file = tmp_path / ".env"
+    env_file.write_text("TAVILY_API_KEY=tvly-file\n")
+    assert load_settings(environ={}, env_file=env_file).tavily_api_key == "tvly-file"
+    assert load_settings(environ={"TAVILY_API_KEY": " tvly-env "}, env_file=env_file).tavily_api_key == "tvly-env"
+    assert load_settings(environ={"TAVILY_API_KEY": "  "}).tavily_api_key is None
+    assert load_settings(environ={}).tavily_api_key is None
+
+
+def test_repr_hides_tavily_key() -> None:
+    settings = Settings(tavily_api_key="tvly-SECRET789")
+    assert "tvly-SECRET789" not in repr(settings)
+    assert "tvly-SECRET789" not in str(settings)
+    assert "tavily_api_key='<set>'" in repr(settings)
+    assert "tavily_api_key=None" in repr(Settings())
