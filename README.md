@@ -20,8 +20,32 @@ cp .env.example .env                # then add your OPENAI_API_KEY and ALPHA_VAN
 | `QUOTE_CACHE_TTL_SECONDS` | `1800` | How long a live quote stays fresh in the in-process cache. |
 | `OPENAI_API_KEY` | unset | OpenAI key for the router and agents. Required to ask questions; `ask` raises `ConfigurationError` naming it if unset. |
 | `OPENAI_MODEL` | `gpt-4o-mini` | OpenAI model used by the router and agents. Must be a model your OpenAI project can access. |
+| `TAVILY_API_KEY` | unset | Tavily key for the News Synthesizer's news search. If unset, news questions get a "can't look up current news right now" reply. |
 
 Real environment variables take precedence over `.env`.
+
+## Running the app
+
+```bash
+uv run streamlit run app.py
+```
+
+Then open http://localhost:8501. The app has five tabs:
+
+| Tab | What it does |
+|---|---|
+| Chat | Any question; the router picks one of the six agents. Follow-ups use the chat history. |
+| Portfolio | Upload a holdings CSV (`ticker` plus `shares` or `value` per row, e.g. `tests/data/sample_holdings.csv`), preview it, and ask the Portfolio Analysis agent about it. |
+| Markets | Ask the Market Analysis agent about a ticker, and the News Synthesizer about current news. |
+| Goals | Enter a target, years, an optional expected annual rate and current savings; the Goal Planning agent shows the monthly amount and the math. |
+| Knowledge | Browse the knowledge-base articles (title, source, link) and ask concept or tax-account questions (routed by the router). |
+
+Every answer comes from `ask`, so it carries the disclaimer, and cited sources are listed as links under it. The Portfolio, Markets and Goals panels send questions straight to their agent (advice-seeking questions still get the redirect). Uploads and conversations live only in the browser session; nothing is saved. The app starts with no API keys; without `OPENAI_API_KEY` each question shows "OPENAI_API_KEY is not set…" instead of an answer.
+
+- Without `ALPHA_VANTAGE_API_KEY`, Markets (and Portfolio pricing) use the bundled mock quotes, labelled as such.
+- Without `TAVILY_API_KEY`, News replies that it can't look up current news right now.
+
+`.streamlit/config.toml` limits uploads to 1 MB (the holdings parser's limit) and turns off Streamlit's usage statistics.
 
 ## Running tests
 

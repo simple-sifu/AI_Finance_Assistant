@@ -1,0 +1,6 @@
+[server]
+# Matches the holdings parser's 1 MB limit (portfolio.MAX_FILE_BYTES).
+maxUploadSize = 1
+
+[browser]
+gatherUsageStats = false
