@@ -26,8 +26,9 @@ CONTAINER="finance-assistant"
 
 log() { printf '\n==> %s\n' "$*"; }
 
-# True when KEY has a non-blank value in the env file (the app strips whitespace).
-has_value() { grep -Eq "^$1=[[:space:]]*[^[:space:]]" "$ENV_FILE"; }
+# True when KEY has a non-blank value in the env file (the app strips whitespace and
+# dotenv strips quotes, so KEY="" counts as empty).
+has_value() { grep -Eq "^$1=[[:space:]]*[\"']?[^[:space:]\"']" "$ENV_FILE"; }
 
 main() {
     # 1. Swap: building and running torch on a 2 GB instance needs headroom.
@@ -83,12 +84,15 @@ main() {
     sudo docker build --tag "$IMAGE:latest" "$APP_DIR"
 
     # 6. Container: replace the old one; restart on crash and after reboot.
+    # The env file is mounted, not passed with --env-file: Docker keeps quotes and
+    # inline comments as part of the value, the app's dotenv parser strips them.
+    # The app user is uid 1000, the same as ubuntu, so it can read the 600 file.
     log "Starting the container"
     sudo docker rm --force "$CONTAINER" >/dev/null 2>&1 || true
     sudo docker run --detach \
         --name "$CONTAINER" \
         --restart unless-stopped \
-        --env-file "$ENV_FILE" \
+        --volume "$ENV_FILE:/app/.env:ro" \
         --publish 80:8501 \
         "$IMAGE:latest" >/dev/null
     sudo docker image prune --force >/dev/null

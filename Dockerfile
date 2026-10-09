@@ -1,6 +1,7 @@
 # AI Finance Tutor: one Streamlit container (story 11). Build on the server with
 #   docker build -t finance-assistant .
-# API keys and APP_PASSWORD are passed at run time (--env-file); none are baked in.
+# API keys and APP_PASSWORD come at run time from an env file mounted read-only at
+# /app/.env, which the app parses like local dev; none are baked in.
 
 FROM python:3.12-slim
 
