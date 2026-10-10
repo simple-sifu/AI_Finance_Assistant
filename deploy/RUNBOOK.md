@@ -46,13 +46,15 @@ Either option works.
 
 - **In the browser (easiest):**
   1. Open **EC2 → Instances**, select `finance-tutor`, then **Connect → EC2 Instance Connect → Connect**.
-  2. If that fails because SSH is limited to "My IP", edit the security group's SSH rule to allow the EC2 Instance Connect range for your region. Or use the Terminal option below.
+  2. If it says "Error establishing SSH connection", the "My IP" rule is blocking it: the browser connects from AWS's servers, not your computer. Use the Terminal option below, or open the instance's **Security** tab → the security group → **Edit inbound rules → Add rule**: type `SSH`, source `Custom`, then pick the prefix list `com.amazonaws.<region>.ec2-instance-connect`. Save and retry.
 - **From your Mac's Terminal:**
 
   ```bash
   chmod 400 ~/Downloads/finance-tutor.pem
   ssh -i ~/Downloads/finance-tutor.pem ubuntu@<elastic-ip>
   ```
+
+  On Amazon Linux 2023, the username is `ec2-user` instead of `ubuntu`. If SSH times out, your IP may have changed since launch; edit the SSH rule and pick **My IP** again.
 
 ## 5. First run: install, then fill in your keys
 
@@ -89,7 +91,7 @@ APP_PASSWORD=pick-a-password-for-the-grader
 
 Save with Ctrl+O, Enter, then exit with Ctrl+X.
 
-- Write each value without quotes and without a trailing `# comment`; Docker would pass either through as part of the value.
+- Quotes and `# comment` lines are fine: the file is mounted into the container and the app parses it like a local `.env`.
 - The script refuses to start the app while `APP_PASSWORD` is empty.
 - This file lives only on the server. Never commit it.
 

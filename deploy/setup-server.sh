@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Set up or update the AI Finance Tutor on an Ubuntu 24.04 EC2 instance (story 11).
+# Set up or update the AI Finance Tutor on an Ubuntu 24.04 or Amazon Linux 2023 EC2
+# instance (story 11).
 #
 #   curl -fsSL https://raw.githubusercontent.com/simple-sifu/AI_Finance_Assistant/main/deploy/setup-server.sh -o setup-server.sh
 #   bash setup-server.sh
@@ -44,8 +45,17 @@ main() {
     # 2. Docker and git.
     if ! command -v docker >/dev/null 2>&1 || ! command -v git >/dev/null 2>&1; then
         log "Installing Docker and git"
-        sudo apt-get update -y
-        sudo apt-get install -y docker.io docker-buildx git curl
+        if command -v apt-get >/dev/null 2>&1; then
+            sudo apt-get update -y
+            sudo apt-get install -y docker.io docker-buildx git curl
+        elif command -v dnf >/dev/null 2>&1; then
+            # Amazon Linux 2023: curl-minimal is preinstalled, and without buildx
+            # Docker falls back to the legacy builder, which this Dockerfile supports.
+            sudo dnf install -y docker git
+        else
+            echo "ERROR: no apt-get or dnf found. Use Ubuntu 24.04 or Amazon Linux 2023."
+            exit 1
+        fi
         sudo systemctl enable --now docker
     fi
 
@@ -86,7 +96,7 @@ main() {
     # 6. Container: replace the old one; restart on crash and after reboot.
     # The env file is mounted, not passed with --env-file: Docker keeps quotes and
     # inline comments as part of the value, the app's dotenv parser strips them.
-    # The app user is uid 1000, the same as ubuntu, so it can read the 600 file.
+    # The app user is uid 1000, the same as ubuntu and ec2-user, so it can read the 600 file.
     log "Starting the container"
     sudo docker rm --force "$CONTAINER" >/dev/null 2>&1 || true
     sudo docker run --detach \
