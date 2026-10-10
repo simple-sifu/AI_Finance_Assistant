@@ -1,5 +1,7 @@
 # AI_Finance_Assistant
 
+**Live app:** [AI Finance Tutor](http://ec2-3-139-139-12.us-east-2.compute.amazonaws.com/)
+
 A multi-agent AI finance tutor that teaches investing concepts and never gives advice.
 
 ## Setup
